@@ -1,0 +1,60 @@
+# .NET
+bin/
+obj/
+artifacts/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# JetBrains / Rider
+.idea/
+
+# Configuração local
+appsettings.Development.json
+appsettings.Local.json
+
+# Secrets / ambiente
+.env
+.env.*
+!.env.example
+secrets.json
+*.secrets.json
+
+# Logs
+logs/
+Logs/
+*.log
+
+# Testes
+TestResults/
+coverage/
+coverage.*
+*.trx
+
+# Publish
+publish/
+Publish/
+*.pubxml
+*.pubxml.user
+
+# Certificados / chaves
+*.pfx
+*.p12
+*.pem
+*.key
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporários
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
