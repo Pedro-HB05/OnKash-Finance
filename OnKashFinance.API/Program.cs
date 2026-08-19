@@ -117,7 +117,7 @@ var allowedOrigins =
             StringSplitOptions.RemoveEmptyEntries |
             StringSplitOptions.TrimEntries
         )
-    ?? ["http://localhost:5173"];
+    ?? ["http://localhost:3000", "http://localhost:5173"];
 
 builder.Services.AddCors(options =>
 {
@@ -125,10 +125,18 @@ builder.Services.AddCors(options =>
         "Frontend",
         policy =>
         {
-            policy
-                .WithOrigins(allowedOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
+            if (allowedOrigins.Contains("*"))
+            {
+                policy.AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            }
+            else
+            {
+                policy.WithOrigins(allowedOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            }
         }
     );
 });
