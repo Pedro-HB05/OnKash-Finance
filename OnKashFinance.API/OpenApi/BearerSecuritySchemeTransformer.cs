@@ -2,52 +2,65 @@
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
-namespace OnKashFinance.Api.OpenApi;
+namespace OnKashFinance.API.OpenApi;
 
-public sealed class BearerSecuritySchemeTransformer(
-    IAuthenticationSchemeProvider authenticationSchemeProvider)
+public sealed class BearerSecuritySchemeTransformer
     : IOpenApiDocumentTransformer
 {
+    private readonly IAuthenticationSchemeProvider
+        _authenticationSchemeProvider;
+
+    public BearerSecuritySchemeTransformer(
+        IAuthenticationSchemeProvider authenticationSchemeProvider)
+    {
+        _authenticationSchemeProvider =
+            authenticationSchemeProvider;
+    }
+
     public async Task TransformAsync(
         OpenApiDocument document,
         OpenApiDocumentTransformerContext context,
         CancellationToken cancellationToken)
     {
         var authenticationSchemes =
-            await authenticationSchemeProvider.GetAllSchemesAsync();
+            await _authenticationSchemeProvider
+                .GetAllSchemesAsync();
 
-        if (!authenticationSchemes.Any(x => x.Name == "Bearer"))
+        var possuiBearer =
+            authenticationSchemes.Any(
+                x => x.Name == "Bearer"
+            );
+
+        if (!possuiBearer)
         {
             return;
         }
 
-        document.Components ??= new OpenApiComponents();
-
-        document.Components.SecuritySchemes =
+        var securitySchemes =
             new Dictionary<string, IOpenApiSecurityScheme>
             {
-                ["Bearer"] = new OpenApiSecurityScheme
-                {
-                    Type = SecuritySchemeType.Http,
-                    Scheme = "bearer",
-                    In = ParameterLocation.Header,
-                    BearerFormat = "JWT"
-                }
+                ["Bearer"] =
+                    new OpenApiSecurityScheme
+                    {
+                        Type =
+                            SecuritySchemeType.Http,
+
+                        Scheme = "bearer",
+
+                        In =
+                            ParameterLocation.Header,
+
+                        BearerFormat = "JWT",
+
+                        Description =
+                            "Informe o token JWT."
+                    }
             };
 
-        foreach (var operation in
-                 document.Paths.Values.SelectMany(path => path.Operations))
-        {
-            operation.Value.Security ??= [];
+        document.Components ??=
+            new OpenApiComponents();
 
-            operation.Value.Security.Add(
-                new OpenApiSecurityRequirement
-                {
-                    [new OpenApiSecuritySchemeReference(
-                        "Bearer",
-                        document)] = []
-                }
-            );
-        }
+        document.Components.SecuritySchemes =
+            securitySchemes;
     }
 }
