@@ -1,60 +1,122 @@
+# =========================
 # .NET
+# =========================
 bin/
 obj/
 artifacts/
+*.dll
+*.exe
+*.pdb
+*.cache
 
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+.nuget/
+
+# =========================
 # Visual Studio
+# =========================
 .vs/
 *.user
+*.rsuser
 *.suo
 *.userosscache
 *.sln.docstates
+*.csproj.user
 
+# =========================
+# VS Code
+# =========================
+.vscode/
+
+# =========================
 # JetBrains / Rider
+# =========================
 .idea/
+*.sln.iml
 
-# Configuração local
+# =========================
+# Configurações locais
+# =========================
 appsettings.Development.json
 appsettings.Local.json
+appsettings.*.Local.json
 
-# Secrets / ambiente
+# =========================
+# Secrets / variáveis de ambiente
+# =========================
 .env
 .env.*
 !.env.example
+
 secrets.json
 *.secrets.json
 
+# User Secrets
+secrets/
+.usersecrets/
+
+# =========================
 # Logs
+# =========================
 logs/
 Logs/
 *.log
 
-# Testes
+# =========================
+# Testes / cobertura
+# =========================
 TestResults/
 coverage/
 coverage.*
 *.trx
+*.coverage
+*.coveragexml
 
-# Publish
+# =========================
+# Publish / Build
+# =========================
 publish/
 Publish/
+out/
+dist/
+
 *.pubxml
 *.pubxml.user
 
+# =========================
 # Certificados / chaves
+# =========================
 *.pfx
 *.p12
 *.pem
 *.key
+*.crt
 
-# Sistema operacional
-.DS_Store
-Thumbs.db
-Desktop.ini
+# =========================
+# Banco local
+# =========================
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
 
+# =========================
 # Temporários
+# =========================
 *.tmp
 *.temp
 *.bak
 *.swp
 *.swo
+*~
+
+# =========================
+# Sistema operacional
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
