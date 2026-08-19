@@ -14,6 +14,10 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// =========================================================
+// CONTROLLERS / JSON
+// =========================================================
+
 builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
@@ -22,6 +26,10 @@ builder.Services
             new JsonStringEnumConverter()
         );
     });
+
+// =========================================================
+// OPENAPI / SWAGGER
+// =========================================================
 
 builder.Services.AddOpenApi(options =>
 {
@@ -32,6 +40,10 @@ builder.Services.AddOpenApi(options =>
         AuthOperationTransformer>();
 });
 
+// =========================================================
+// BANCO DE DADOS
+// =========================================================
+
 var connectionString =
     builder.Configuration.GetConnectionString(
         "DefaultConnection"
@@ -40,84 +52,134 @@ var connectionString =
         "ConnectionString 'DefaultConnection' não configurada."
     );
 
-builder.Services.AddDbContext<OnKashDbContext>(options =>
-{
-    options.UseNpgsql(
-        connectionString,
-        npgsqlOptions =>
-        {
-            var nomesExatos =
-                new NpgsqlNullNameTranslator();
+// IMPORTANTE:
+// Essa instância é criada UMA VEZ e reutilizada em todos
+// os mapeamentos do Entity Framework/Npgsql.
+var nomesExatos =
+    new NpgsqlNullNameTranslator();
 
-            npgsqlOptions.MapEnum<TipoContaUsuario>(
-                "tipo_conta_usuario",
-                nameTranslator: nomesExatos
-            );
+builder.Services.AddDbContext<OnKashDbContext>(
+    options =>
+    {
+        options.UseNpgsql(
+            connectionString,
+            npgsqlOptions =>
+            {
+                npgsqlOptions.MapEnum<
+                    TipoContaUsuario>(
+                    "tipo_conta_usuario",
+                    nameTranslator: nomesExatos
+                );
 
-            npgsqlOptions.MapEnum<TipoCategoria>(
-                "tipo_categoria",
-                nameTranslator: nomesExatos
-            );
+                npgsqlOptions.MapEnum<
+                    TipoCategoria>(
+                    "tipo_categoria",
+                    nameTranslator: nomesExatos
+                );
 
-            npgsqlOptions.MapEnum<TipoLancamentoPessoal>(
-                "tipo_lancamento_pessoal",
-                nameTranslator: nomesExatos
-            );
+                npgsqlOptions.MapEnum<
+                    TipoLancamentoPessoal>(
+                    "tipo_lancamento_pessoal",
+                    nameTranslator: nomesExatos
+                );
 
-            npgsqlOptions.MapEnum<StatusFatura>(
-                "status_fatura",
-                nameTranslator: nomesExatos
-            );
+                npgsqlOptions.MapEnum<
+                    StatusFatura>(
+                    "status_fatura",
+                    nameTranslator: nomesExatos
+                );
 
-            npgsqlOptions.MapEnum<TipoLancamentoEmpresarial>(
-                "tipo_lancamento_empresarial",
-                nameTranslator: nomesExatos
-            );
+                npgsqlOptions.MapEnum<
+                    TipoLancamentoEmpresarial>(
+                    "tipo_lancamento_empresarial",
+                    nameTranslator: nomesExatos
+                );
 
-            npgsqlOptions.MapEnum<StatusContaPagar>(
-                "status_conta_pagar",
-                nameTranslator: nomesExatos
-            );
+                npgsqlOptions.MapEnum<
+                    StatusContaPagar>(
+                    "status_conta_pagar",
+                    nameTranslator: nomesExatos
+                );
 
-            npgsqlOptions.MapEnum<StatusContaReceber>(
-                "status_conta_receber",
-                nameTranslator: nomesExatos
-            );
+                npgsqlOptions.MapEnum<
+                    StatusContaReceber>(
+                    "status_conta_receber",
+                    nameTranslator: nomesExatos
+                );
 
-            npgsqlOptions.MapEnum<PerfilEmpresa>(
-                "perfil_empresa",
-                nameTranslator: nomesExatos
-            );
-        }
-    );
-});
+                npgsqlOptions.MapEnum<
+                    PerfilEmpresa>(
+                    "perfil_empresa",
+                    nameTranslator: nomesExatos
+                );
+            }
+        );
+    }
+);
+
+// =========================================================
+// PASSWORD HASHER
+// =========================================================
 
 builder.Services.AddScoped<
     IPasswordHasher<Usuario>,
     PasswordHasher<Usuario>
 >();
 
+// =========================================================
+// HTTP CONTEXT
+// =========================================================
+
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddScoped<JwtService>();
-builder.Services.AddScoped<UsuarioAtualService>();
+// =========================================================
+// SERVIÇOS
+// =========================================================
 
-builder.Services.AddScoped<AutenticacaoService>();
-builder.Services.AddScoped<PessoalService>();
-builder.Services.AddScoped<CartaoService>();
-builder.Services.AddScoped<CadastrosEmpresariaisService>();
-builder.Services.AddScoped<FinanceiroEmpresarialService>();
-builder.Services.AddScoped<EmpresaUsuariosService>();
-builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<JwtService>();
+
+builder.Services.AddScoped<
+    UsuarioAtualService>();
+
+builder.Services.AddScoped<
+    AutenticacaoService>();
+
+builder.Services.AddScoped<
+    PessoalService>();
+
+builder.Services.AddScoped<
+    CartaoService>();
+
+builder.Services.AddScoped<
+    CadastrosEmpresariaisService>();
+
+builder.Services.AddScoped<
+    FinanceiroEmpresarialService>();
+
+builder.Services.AddScoped<
+    EmpresaUsuariosService>();
+
+builder.Services.AddScoped<
+    DashboardService>();
+
+// =========================================================
+// CORS
+// =========================================================
 
 var allowedOrigins =
-    builder.Configuration["Cors:AllowedOrigins"]?
-        .Split(
-            ';',
-            StringSplitOptions.RemoveEmptyEntries |
-            StringSplitOptions.TrimEntries
-        )
-    ?? ["http://localhost:3000", "http://localhost:5173"];
+    builder.Configuration[
+        "Cors:AllowedOrigins"
+    ]?
+    .Split(
+        new[] { ',', ';' },
+        StringSplitOptions.RemoveEmptyEntries |
+        StringSplitOptions.TrimEntries
+    )
+    ?? new[]
+    {
+        "http://localhost:3000",
+        "http://localhost:5173"
+    };
 
 builder.Services.AddCors(options =>
 {
@@ -127,19 +189,25 @@ builder.Services.AddCors(options =>
         {
             if (allowedOrigins.Contains("*"))
             {
-                policy.AllowAnyOrigin()
+                policy
+                    .AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod();
             }
             else
             {
-                policy.WithOrigins(allowedOrigins)
+                policy
+                    .WithOrigins(allowedOrigins)
                     .AllowAnyHeader()
                     .AllowAnyMethod();
             }
         }
     );
 });
+
+// =========================================================
+// JWT
+// =========================================================
 
 var jwtKey =
     builder.Configuration["Jwt:Key"]
@@ -183,7 +251,9 @@ builder.Services
 
                 IssuerSigningKey =
                     new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtKey)
+                        Encoding.UTF8.GetBytes(
+                            jwtKey
+                        )
                     ),
 
                 ClockSkew = TimeSpan.Zero
@@ -192,9 +262,22 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// =========================================================
+// APP
+// =========================================================
+
 var app = builder.Build();
 
-app.UseMiddleware<TratamentoErrosMiddleware>();
+// =========================================================
+// TRATAMENTO GLOBAL DE ERROS
+// =========================================================
+
+app.UseMiddleware<
+    TratamentoErrosMiddleware>();
+
+// =========================================================
+// SWAGGER - DESENVOLVIMENTO
+// =========================================================
 
 if (app.Environment.IsDevelopment())
 {
@@ -212,10 +295,27 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// =========================================================
+// ROTA RAIZ
+// =========================================================
+
 app.MapGet(
     "/",
-    () => Results.Redirect("/swagger")
+    () =>
+        app.Environment.IsDevelopment()
+            ? Results.Redirect("/swagger")
+            : Results.Ok(
+                new
+                {
+                    nome = "OnKash Finance API",
+                    status = "online"
+                }
+            )
 );
+
+// =========================================================
+// PIPELINE
+// =========================================================
 
 app.UseHttpsRedirection();
 
