@@ -16,24 +16,105 @@ import type {
   DashboardEmpresarial,
   DashboardPessoal,
   Fatura,
+  LancamentoEmpresarial,
   LancamentoPessoal,
   PessoaCadastro,
   UsuarioEmpresa,
 } from "@/tipos/api";
 import { data, moeda, textoEnum } from "@/utilitarios/formatadores";
+
+type GastoPorCategoria = {
+  categoria: string;
+  valor: number;
+};
+
+const estaNoMesAtual = (dataLancamento: string) => {
+  const hoje = new Date();
+  const anoMesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+
+  return dataLancamento.startsWith(anoMesAtual);
+};
+
 export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
   const { sessao } = useAutenticacao();
-  const [dados, setDados] = useState<DashboardPessoal | DashboardEmpresarial | null>(null),
-    [erro, setErro] = useState("");
+  const [dados, setDados] = useState<DashboardPessoal | DashboardEmpresarial | null>(null);
+  const [gastosPorCategoria, setGastosPorCategoria] = useState<GastoPorCategoria[]>([]);
+  const [erro, setErro] = useState("");
+
   useEffect(() => {
-    if (sessao)
-      requisicao<DashboardPessoal | DashboardEmpresarial>(
-        `/api/dashboard/${tipo}`,
-        {},
-        sessao.token,
-      )
-        .then(setDados)
-        .catch((e: Error) => setErro(e.message));
+    if (!sessao) {
+      return;
+    }
+
+    const carregarDashboard = async () => {
+      try {
+        const [dashboard, lancamentos] = await Promise.all([
+          requisicao<DashboardPessoal | DashboardEmpresarial>(
+            `/api/dashboard/${tipo}`,
+            {},
+            sessao.token,
+          ),
+          tipo === "pessoal"
+            ? requisicao<LancamentoPessoal[]>("/api/pessoal/lancamentos", {}, sessao.token)
+            : requisicao<LancamentoEmpresarial[]>("/api/empresarial/lancamentos", {}, sessao.token),
+        ]);
+
+        const despesasDoPeriodo = lancamentos.filter(
+          (lancamento) =>
+            !lancamento.cancelado &&
+            estaNoMesAtual(lancamento.data) &&
+            lancamento.tipo === (tipo === "pessoal" ? "SAIDA" : "DESPESA"),
+        );
+        const totaisPorCategoria = despesasDoPeriodo.reduce((totais, lancamento) => {
+          const categoria = lancamento.categoria ?? "Sem categoria";
+          totais.set(categoria, (totais.get(categoria) ?? 0) + lancamento.valor);
+          return totais;
+        }, new Map<string, number>());
+
+        setGastosPorCategoria(
+          Array.from(totaisPorCategoria, ([categoria, valor]) => ({ categoria, valor })).sort(
+            (primeiro, segundo) => segundo.valor - primeiro.valor,
+          ),
+        );
+
+        if (tipo === "pessoal") {
+          const lancamentosPessoais = lancamentos as LancamentoPessoal[];
+          const entradas = lancamentosPessoais
+            .filter((lancamento) => !lancamento.cancelado && lancamento.tipo === "ENTRADA")
+            .reduce((total, lancamento) => total + lancamento.valor, 0);
+          const saidas = lancamentosPessoais
+            .filter((lancamento) => !lancamento.cancelado && lancamento.tipo === "SAIDA")
+            .reduce((total, lancamento) => total + lancamento.valor, 0);
+
+          setDados({
+            ...(dashboard as DashboardPessoal),
+            entradas,
+            saidas,
+            resultadoMes: entradas - saidas,
+          });
+          return;
+        }
+
+        const lancamentosEmpresariais = lancamentos as LancamentoEmpresarial[];
+        const entradas = lancamentosEmpresariais
+          .filter((lancamento) => !lancamento.cancelado && lancamento.tipo === "RECEITA")
+          .reduce((total, lancamento) => total + lancamento.valor, 0);
+        const saidas = lancamentosEmpresariais
+          .filter((lancamento) => !lancamento.cancelado && lancamento.tipo === "DESPESA")
+          .reduce((total, lancamento) => total + lancamento.valor, 0);
+
+        setDados({
+          ...(dashboard as DashboardEmpresarial),
+          entradas,
+          saidas,
+          resultado: entradas - saidas,
+        });
+      } catch (falha) {
+        setErro(falha instanceof Error ? falha.message : "Não foi possível carregar o dashboard.");
+      }
+    };
+
+    void carregarDashboard();
   }, [sessao, tipo]);
   return (
     <AreaAutenticada tipo={tipo}>
@@ -42,7 +123,7 @@ export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
       ) : !dados ? (
         <p className="estado">Carregando seu resumo financeiro...</p>
       ) : (
-        <DashboardFinanceiro tipo={tipo} dados={dados} />
+        <DashboardFinanceiro tipo={tipo} dados={dados} gastosPorCategoria={gastosPorCategoria} />
       )}
     </AreaAutenticada>
   );
