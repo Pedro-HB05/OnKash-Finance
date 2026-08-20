@@ -12,16 +12,401 @@ import { data, moeda, textoEnum } from "@/utilitarios/formatadores";
 
 type Cadastro = Conta | Cartao | Categoria;
 type TipoCadastro = "conta" | "cartao" | "categoria";
-const configuracao = { conta: { rota: "/api/pessoal/contas", titulo: "Contas", colunas: ["Nome", "Tipo", "Saldo atual", "Situação"] }, cartao: { rota: "/api/pessoal/cartoes", titulo: "Cartões", colunas: ["Nome", "Instituição", "Limite", "Fechamento", "Vencimento", "Situação"] }, categoria: { rota: "/api/pessoal/categorias", titulo: "Categorias", colunas: ["Nome", "Tipo", "Padrão", "Situação"] } } as const;
+const configuracao = {
+  conta: {
+    rota: "/api/pessoal/contas",
+    titulo: "Contas",
+    colunas: ["Nome", "Tipo", "Saldo atual", "Situação"],
+  },
+  cartao: {
+    rota: "/api/pessoal/cartoes",
+    titulo: "Cartões",
+    colunas: ["Nome", "Instituição", "Limite", "Fechamento", "Vencimento", "Situação"],
+  },
+  categoria: {
+    rota: "/api/pessoal/categorias",
+    titulo: "Categorias",
+    colunas: ["Nome", "Tipo", "Padrão", "Situação"],
+  },
+} as const;
 
-function DadosCadastro({ tipo, item, salvar }: { tipo: TipoCadastro; item: Cadastro; salvar: (dados: Record<string, unknown>) => Promise<void> }) {
-  const [salvando, setSalvando] = useState(false); const enviar = async (evento: React.FormEvent<HTMLFormElement>) => { evento.preventDefault(); const f = new FormData(evento.currentTarget); setSalvando(true); try { const base: Record<string, unknown> = { nome: f.get("nome"), ativo: item.ativo }; if (tipo === "conta") { base.tipo = f.get("tipo"); } if (tipo === "categoria") { base.tipo = f.get("tipo"); } if (tipo === "cartao") { const fechamento = String(f.get("fechamento")); const vencimento = String(f.get("vencimento")); base.instituicao = f.get("instituicao"); base.limite = Number(f.get("limite")); base.diaFechamento = Number(fechamento.slice(-2)); base.diaVencimento = Number(vencimento.slice(-2)); } await salvar(base); } finally { setSalvando(false); } };
-  return <form className="formulario" onSubmit={enviar}><Campo label="Nome" name="nome" defaultValue={item.nome} required />{tipo === "conta" && <Campo label="Tipo da conta" name="tipo" defaultValue={(item as Conta).tipo} required />}{tipo === "categoria" && <label className="campo">Tipo<select name="tipo" defaultValue={(item as Categoria).tipo}><option value="ENTRADA">Entrada</option><option value="SAIDA">Saída</option></select></label>}{tipo === "cartao" && <><Campo label="Instituição" name="instituicao" defaultValue={(item as Cartao).instituicao} required /><Campo label="Limite" name="limite" type="number" min="0" step="0.01" defaultValue={(item as Cartao).limite} required /><Campo label="Data de fechamento" name="fechamento" type="date" defaultValue={`2000-01-${String((item as Cartao).diaFechamento).padStart(2,"0")}`} required /><Campo label="Data de vencimento" name="vencimento" type="date" defaultValue={`2000-01-${String((item as Cartao).diaVencimento).padStart(2,"0")}`} required /></>}<button className="botao" disabled={salvando}>{salvando ? "Salvando..." : "Salvar alterações"}</button></form>;
+function DadosCadastro({
+  tipo,
+  item,
+  salvar,
+}: {
+  tipo: TipoCadastro;
+  item: Cadastro;
+  salvar: (dados: Record<string, unknown>) => Promise<void>;
+}) {
+  const [salvando, setSalvando] = useState(false);
+  const enviar = async (evento: React.FormEvent<HTMLFormElement>) => {
+    evento.preventDefault();
+    const f = new FormData(evento.currentTarget);
+    setSalvando(true);
+    try {
+      const base: Record<string, unknown> = { nome: f.get("nome"), ativo: item.ativo };
+      if (tipo === "conta") {
+        base.tipo = f.get("tipo");
+      }
+      if (tipo === "categoria") {
+        base.tipo = f.get("tipo");
+      }
+      if (tipo === "cartao") {
+        const fechamento = String(f.get("fechamento"));
+        const vencimento = String(f.get("vencimento"));
+        base.instituicao = f.get("instituicao");
+        base.limite = Number(f.get("limite"));
+        base.diaFechamento = Number(fechamento.slice(-2));
+        base.diaVencimento = Number(vencimento.slice(-2));
+      }
+      await salvar(base);
+    } finally {
+      setSalvando(false);
+    }
+  };
+  return (
+    <form className="formulario" onSubmit={enviar}>
+      <Campo label="Nome" name="nome" defaultValue={item.nome} required />
+      {tipo === "conta" && (
+        <Campo label="Tipo da conta" name="tipo" defaultValue={(item as Conta).tipo} required />
+      )}
+      {tipo === "categoria" && (
+        <label className="campo">
+          Tipo
+          <select name="tipo" defaultValue={(item as Categoria).tipo}>
+            <option value="ENTRADA">Entrada</option>
+            <option value="SAIDA">Saída</option>
+          </select>
+        </label>
+      )}
+      {tipo === "cartao" && (
+        <>
+          <Campo
+            label="Instituição"
+            name="instituicao"
+            defaultValue={(item as Cartao).instituicao}
+            required
+          />
+          <Campo
+            label="Limite"
+            name="limite"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={(item as Cartao).limite}
+            required
+          />
+          <Campo
+            label="Data de fechamento"
+            name="fechamento"
+            type="date"
+            defaultValue={`2000-01-${String((item as Cartao).diaFechamento).padStart(2, "0")}`}
+            required
+          />
+          <Campo
+            label="Data de vencimento"
+            name="vencimento"
+            type="date"
+            defaultValue={`2000-01-${String((item as Cartao).diaVencimento).padStart(2, "0")}`}
+            required
+          />
+        </>
+      )}
+      <button className="botao" disabled={salvando}>
+        {salvando ? "Salvando..." : "Salvar alterações"}
+      </button>
+    </form>
+  );
 }
 
-function CadastroPessoal({ tipo }: { tipo: TipoCadastro }) { const { sessao } = useAutenticacao(); const info = configuracao[tipo]; const [itens, setItens] = useState<Cadastro[]>([]); const [abrirCadastro, setAbrirCadastro] = useState(false); const [editando, setEditando] = useState<Cadastro | null>(null); const [desativando, setDesativando] = useState<Cadastro | null>(null); const [erro, setErro] = useState(""); const [sucesso, setSucesso] = useState(""); const carregar = async () => { if (!sessao) return; try { setItens(await requisicao<Cadastro[]>(info.rota, {}, sessao.token)); } catch (falha) { setErro(falha instanceof Error ? falha.message : "Não foi possível carregar os registros."); } }; useEffect(() => { void carregar(); }, [sessao]); const atualizar = async (item: Cadastro, dados: Record<string, unknown>) => { if (!sessao) return; try { await requisicao(`${info.rota}/${item.id}`, { method: "PUT", body: JSON.stringify(dados) }, sessao.token); setEditando(null); setSucesso("Alterações salvas com sucesso."); await carregar(); } catch (falha) { setErro(falha instanceof Error ? falha.message : "Não foi possível salvar as alterações."); } }; const desativar = async () => { if (!sessao || !desativando) return; const item = desativando; const dados: Record<string, unknown> = tipo === "conta" ? { nome: (item as Conta).nome, tipo: (item as Conta).tipo, ativo: false } : tipo === "categoria" ? { nome: (item as Categoria).nome, tipo: (item as Categoria).tipo, ativo: false } : { nome: (item as Cartao).nome, instituicao: (item as Cartao).instituicao, limite: (item as Cartao).limite, diaFechamento: (item as Cartao).diaFechamento, diaVencimento: (item as Cartao).diaVencimento, ativo: false }; try { await requisicao(`${info.rota}/${item.id}`, { method: "PUT", body: JSON.stringify(dados) }, sessao.token); setDesativando(null); setSucesso("Registro desativado com sucesso."); await carregar(); } catch (falha) { setErro(falha instanceof Error ? falha.message : "Não foi possível desativar o registro."); } }; const valor = (item: Cadastro, coluna: string) => coluna === "Nome" ? item.nome : coluna === "Tipo" ? textoEnum((item as Conta | Categoria).tipo) : coluna === "Saldo atual" ? moeda((item as Conta).saldoAtual) : coluna === "Instituição" ? (item as Cartao).instituicao : coluna === "Limite" ? moeda((item as Cartao).limite) : coluna === "Fechamento" ? `Dia ${(item as Cartao).diaFechamento}` : coluna === "Vencimento" ? `Dia ${(item as Cartao).diaVencimento}` : coluna === "Padrão" ? (item as Categoria).padrao ? "Sim" : "Não" : <Badge valor={item.ativo} />;
-  return <AreaAutenticada tipo="pessoal"><header className="cabecalho"><div><h1>{info.titulo}</h1><p>Gerencie seus registros financeiros.</p></div><button className="botao" onClick={() => setAbrirCadastro(true)}>+ Novo cadastro</button></header>{sucesso && <p className="mensagem sucesso">{sucesso}</p>}{erro ? <p className="mensagem erro">{erro}</p> : <div className="tabela"><table><thead><tr>{info.colunas.map((coluna) => <th key={coluna}>{coluna}</th>)}<th aria-label="Mais opções" /></tr></thead><tbody>{itens.map((item) => <tr key={item.id}>{info.colunas.map((coluna) => <td key={coluna} data-label={coluna}>{valor(item, coluna)}</td>)}<td data-label="Mais opções"><MenuAcoes acoes={[{ rotulo: "Editar", executar: () => setEditando(item) }, ...((tipo !== "categoria" || !(item as Categoria).padrao) ? [{ rotulo: "Desativar", perigosa: true, executar: () => setDesativando(item) }] : [])]} /></td></tr>)}</tbody></table></div>}{abrirCadastro && <Modal titulo={`Novo ${info.titulo.slice(0, -1).toLowerCase()}`} fechar={() => setAbrirCadastro(false)}><FormularioSimples tipo={tipo} rota={info.rota} concluir={() => { setAbrirCadastro(false); void carregar(); }} /></Modal>}{editando && <Modal titulo={`Editar ${info.titulo.slice(0, -1).toLowerCase()}`} fechar={() => setEditando(null)}><DadosCadastro tipo={tipo} item={editando} salvar={(dados) => atualizar(editando, dados)} /></Modal>}{desativando && <Modal titulo="Desativar registro" fechar={() => setDesativando(null)}><ConfirmacaoAcao descricao="O registro será desativado e o histórico será preservado." textoConfirmar="Desativar" confirmar={() => void desativar()} fechar={() => setDesativando(null)} /></Modal>}</AreaAutenticada>; }
+function CadastroPessoal({ tipo }: { tipo: TipoCadastro }) {
+  const { sessao } = useAutenticacao();
+  const info = configuracao[tipo];
+  const [itens, setItens] = useState<Cadastro[]>([]);
+  const [abrirCadastro, setAbrirCadastro] = useState(false);
+  const [editando, setEditando] = useState<Cadastro | null>(null);
+  const [desativando, setDesativando] = useState<Cadastro | null>(null);
+  const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState("");
+  const carregar = async () => {
+    if (!sessao) return;
+    try {
+      setItens(await requisicao<Cadastro[]>(info.rota, {}, sessao.token));
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível carregar os registros.");
+    }
+  };
+  useEffect(() => {
+    void carregar();
+  }, [sessao]);
+  const atualizar = async (item: Cadastro, dados: Record<string, unknown>) => {
+    if (!sessao) return;
+    try {
+      await requisicao(
+        `${info.rota}/${item.id}`,
+        { method: "PUT", body: JSON.stringify(dados) },
+        sessao.token,
+      );
+      setEditando(null);
+      setSucesso("Alterações salvas com sucesso.");
+      await carregar();
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível salvar as alterações.");
+    }
+  };
+  const desativar = async () => {
+    if (!sessao || !desativando) return;
+    const item = desativando;
+    const dados: Record<string, unknown> =
+      tipo === "conta"
+        ? { nome: (item as Conta).nome, tipo: (item as Conta).tipo, ativo: false }
+        : tipo === "categoria"
+          ? { nome: (item as Categoria).nome, tipo: (item as Categoria).tipo, ativo: false }
+          : {
+              nome: (item as Cartao).nome,
+              instituicao: (item as Cartao).instituicao,
+              limite: (item as Cartao).limite,
+              diaFechamento: (item as Cartao).diaFechamento,
+              diaVencimento: (item as Cartao).diaVencimento,
+              ativo: false,
+            };
+    try {
+      await requisicao(
+        `${info.rota}/${item.id}`,
+        { method: "PUT", body: JSON.stringify(dados) },
+        sessao.token,
+      );
+      setDesativando(null);
+      setSucesso("Registro desativado com sucesso.");
+      await carregar();
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível desativar o registro.");
+    }
+  };
+  const valor = (item: Cadastro, coluna: string) =>
+    coluna === "Nome" ? (
+      item.nome
+    ) : coluna === "Tipo" ? (
+      textoEnum((item as Conta | Categoria).tipo)
+    ) : coluna === "Saldo atual" ? (
+      moeda((item as Conta).saldoAtual)
+    ) : coluna === "Instituição" ? (
+      (item as Cartao).instituicao
+    ) : coluna === "Limite" ? (
+      moeda((item as Cartao).limite)
+    ) : coluna === "Fechamento" ? (
+      `Dia ${(item as Cartao).diaFechamento}`
+    ) : coluna === "Vencimento" ? (
+      `Dia ${(item as Cartao).diaVencimento}`
+    ) : coluna === "Padrão" ? (
+      (item as Categoria).padrao ? (
+        "Sim"
+      ) : (
+        "Não"
+      )
+    ) : (
+      <Badge valor={item.ativo} />
+    );
+  return (
+    <AreaAutenticada tipo="pessoal">
+      <header className="cabecalho">
+        <div>
+          <h1>{info.titulo}</h1>
+          <p>Gerencie seus registros financeiros.</p>
+        </div>
+        <button className="botao" onClick={() => setAbrirCadastro(true)}>
+          + Novo cadastro
+        </button>
+      </header>
+      {sucesso && <p className="mensagem sucesso">{sucesso}</p>}
+      {erro ? (
+        <p className="mensagem erro">{erro}</p>
+      ) : (
+        <div className="tabela">
+          <table>
+            <thead>
+              <tr>
+                {info.colunas.map((coluna) => (
+                  <th key={coluna}>{coluna}</th>
+                ))}
+                <th aria-label="Mais opções" />
+              </tr>
+            </thead>
+            <tbody>
+              {itens.map((item) => (
+                <tr key={item.id}>
+                  {info.colunas.map((coluna) => (
+                    <td key={coluna} data-label={coluna}>
+                      {valor(item, coluna)}
+                    </td>
+                  ))}
+                  <td data-label="Mais opções">
+                    <MenuAcoes
+                      acoes={[
+                        { rotulo: "Editar", executar: () => setEditando(item) },
+                        ...(tipo !== "categoria" || !(item as Categoria).padrao
+                          ? [
+                              {
+                                rotulo: "Desativar",
+                                perigosa: true,
+                                executar: () => setDesativando(item),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {abrirCadastro && (
+        <Modal
+          titulo={`Novo ${info.titulo.slice(0, -1).toLowerCase()}`}
+          fechar={() => setAbrirCadastro(false)}
+        >
+          <FormularioSimples
+            tipo={tipo}
+            rota={info.rota}
+            concluir={() => {
+              setAbrirCadastro(false);
+              void carregar();
+            }}
+          />
+        </Modal>
+      )}
+      {editando && (
+        <Modal
+          titulo={`Editar ${info.titulo.slice(0, -1).toLowerCase()}`}
+          fechar={() => setEditando(null)}
+        >
+          <DadosCadastro
+            tipo={tipo}
+            item={editando}
+            salvar={(dados) => atualizar(editando, dados)}
+          />
+        </Modal>
+      )}
+      {desativando && (
+        <Modal titulo="Desativar registro" fechar={() => setDesativando(null)}>
+          <ConfirmacaoAcao
+            descricao="O registro será desativado e o histórico será preservado."
+            textoConfirmar="Desativar"
+            confirmar={() => void desativar()}
+            fechar={() => setDesativando(null)}
+          />
+        </Modal>
+      )}
+    </AreaAutenticada>
+  );
+}
 
-export const ContasPessoais = () => <CadastroPessoal tipo="conta" />; export const CartoesPessoais = () => <CadastroPessoal tipo="cartao" />; export const CategoriasPessoais = () => <CadastroPessoal tipo="categoria" />;
+export const ContasPessoais = () => <CadastroPessoal tipo="conta" />;
+export const CartoesPessoais = () => <CadastroPessoal tipo="cartao" />;
+export const CategoriasPessoais = () => <CadastroPessoal tipo="categoria" />;
 
-export function LancamentosPessoais() { const { sessao } = useAutenticacao(); const [itens, setItens] = useState<LancamentoPessoal[]>([]); const [cancelando, setCancelando] = useState<LancamentoPessoal | null>(null); const [erro, setErro] = useState(""); const carregar = async () => { if (!sessao) return; try { setItens(await requisicao<LancamentoPessoal[]>("/api/pessoal/lancamentos", {}, sessao.token)); } catch { setErro("Não foi possível carregar os lançamentos."); } }; useEffect(() => { void carregar(); }, [sessao]); const cancelar = async () => { if (!sessao || !cancelando) return; try { await requisicao(`/api/pessoal/lancamentos/${cancelando.id}`, { method: "DELETE" }, sessao.token); setCancelando(null); await carregar(); } catch { setErro("Não foi possível cancelar o lançamento."); } }; return <AreaAutenticada tipo="pessoal"><header className="cabecalho"><div><h1>Lançamentos</h1><p>Consulte suas entradas e saídas.</p></div></header>{erro ? <p className="mensagem erro">{erro}</p> : <div className="tabela"><table><thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Conta</th><th>Valor</th><th>Status</th><th aria-label="Mais opções" /></tr></thead><tbody>{itens.map((item) => <tr key={item.id}><td data-label="Data">{data(item.data)}</td><td data-label="Descrição">{item.descricao}</td><td data-label="Tipo">{textoEnum(item.tipo)}</td><td data-label="Conta">{item.conta}</td><td data-label="Valor">{moeda(item.valor)}</td><td data-label="Status"><Badge valor={item.cancelado ? "CANCELADO" : "Ativo"} /></td><td data-label="Mais opções">{!item.cancelado && <MenuAcoes acoes={[{ rotulo: "Editar", executar: () => setErro("A edição utiliza o formulário de lançamento existente.") }, { rotulo: "Cancelar", perigosa: true, executar: () => setCancelando(item) }]} />}</td></tr>)}</tbody></table></div>}{cancelando && <Modal titulo="Cancelar lançamento" fechar={() => setCancelando(null)}><ConfirmacaoAcao descricao="Esta ação preservará o histórico financeiro." textoConfirmar="Confirmar cancelamento" confirmar={() => void cancelar()} fechar={() => setCancelando(null)} /></Modal>}</AreaAutenticada>; }
+export function LancamentosPessoais() {
+  const { sessao } = useAutenticacao();
+  const [itens, setItens] = useState<LancamentoPessoal[]>([]);
+  const [cancelando, setCancelando] = useState<LancamentoPessoal | null>(null);
+  const [erro, setErro] = useState("");
+  const carregar = async () => {
+    if (!sessao) return;
+    try {
+      setItens(await requisicao<LancamentoPessoal[]>("/api/pessoal/lancamentos", {}, sessao.token));
+    } catch {
+      setErro("Não foi possível carregar os lançamentos.");
+    }
+  };
+  useEffect(() => {
+    void carregar();
+  }, [sessao]);
+  const cancelar = async () => {
+    if (!sessao || !cancelando) return;
+    try {
+      await requisicao(
+        `/api/pessoal/lancamentos/${cancelando.id}`,
+        { method: "DELETE" },
+        sessao.token,
+      );
+      setCancelando(null);
+      await carregar();
+    } catch {
+      setErro("Não foi possível cancelar o lançamento.");
+    }
+  };
+  return (
+    <AreaAutenticada tipo="pessoal">
+      <header className="cabecalho">
+        <div>
+          <h1>Lançamentos</h1>
+          <p>Consulte suas entradas e saídas.</p>
+        </div>
+      </header>
+      {erro ? (
+        <p className="mensagem erro">{erro}</p>
+      ) : (
+        <div className="tabela">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Tipo</th>
+                <th>Conta</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th aria-label="Mais opções" />
+              </tr>
+            </thead>
+            <tbody>
+              {itens.map((item) => (
+                <tr key={item.id}>
+                  <td data-label="Data">{data(item.data)}</td>
+                  <td data-label="Descrição">{item.descricao}</td>
+                  <td data-label="Tipo">{textoEnum(item.tipo)}</td>
+                  <td data-label="Conta">{item.conta}</td>
+                  <td data-label="Valor">{moeda(item.valor)}</td>
+                  <td data-label="Status">
+                    <Badge valor={item.cancelado ? "CANCELADO" : "Ativo"} />
+                  </td>
+                  <td data-label="Mais opções">
+                    {!item.cancelado && (
+                      <MenuAcoes
+                        acoes={[
+                          {
+                            rotulo: "Editar",
+                            executar: () =>
+                              setErro("A edição utiliza o formulário de lançamento existente."),
+                          },
+                          {
+                            rotulo: "Cancelar",
+                            perigosa: true,
+                            executar: () => setCancelando(item),
+                          },
+                        ]}
+                      />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {cancelando && (
+        <Modal titulo="Cancelar lançamento" fechar={() => setCancelando(null)}>
+          <ConfirmacaoAcao
+            descricao="Esta ação preservará o histórico financeiro."
+            textoConfirmar="Confirmar cancelamento"
+            confirmar={() => void cancelar()}
+            fechar={() => setCancelando(null)}
+          />
+        </Modal>
+      )}
+    </AreaAutenticada>
+  );
+}

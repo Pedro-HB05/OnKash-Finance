@@ -1,1 +1,2 @@
-import { ContasFinanceiras } from "@/componentes/ContasFinanceiras"; export default()=> <ContasFinanceiras receber={false}/>;
+import { ContasFinanceiras } from "@/componentes/ContasFinanceiras";
+export default () => <ContasFinanceiras receber={false} />;

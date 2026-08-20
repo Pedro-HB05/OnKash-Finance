@@ -1,1 +1,19 @@
-import type {Metadata} from "next";import "./globals.css";import "./interface.css";import "./header.css";import "./camadas.css";import{ProvedorAutenticacao}from"@/contextos/AutenticacaoContexto";export const metadata:Metadata={title:"OnKash Finance",description:"Cuide das suas finanças de forma simples."};export default function Layout({children}:{children:React.ReactNode}){return <html lang="pt-BR"><body><ProvedorAutenticacao>{children}</ProvedorAutenticacao></body></html>}
+import type { Metadata } from "next";
+import "./globals.css";
+import "./interface.css";
+import "./header.css";
+import "./camadas.css";
+import { ProvedorAutenticacao } from "@/contextos/AutenticacaoContexto";
+export const metadata: Metadata = {
+  title: "OnKash Finance",
+  description: "Cuide das suas finanças de forma simples.",
+};
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR">
+      <body>
+        <ProvedorAutenticacao>{children}</ProvedorAutenticacao>
+      </body>
+    </html>
+  );
+}

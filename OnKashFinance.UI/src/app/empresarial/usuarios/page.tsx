@@ -1,1 +1,2 @@
-import{PaginaUsuarios}from"@/componentes/Paginas";export default PaginaUsuarios;
+import { PaginaUsuarios } from "@/componentes/Paginas";
+export default PaginaUsuarios;

@@ -9,7 +9,9 @@ export function AlternadorTema() {
 
   useEffect(() => {
     const temaSalvo = localStorage.getItem(chaveTema);
-    const escuro = temaSalvo ? temaSalvo === "escuro" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const escuro = temaSalvo
+      ? temaSalvo === "escuro"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
     setTemaEscuro(escuro);
     document.documentElement.dataset.theme = escuro ? "escuro" : "claro";
   }, []);
@@ -21,8 +23,10 @@ export function AlternadorTema() {
     document.documentElement.dataset.theme = proximo ? "escuro" : "claro";
   };
 
-  return <button className="alternador-tema" type="button" onClick={alternar} aria-pressed={temaEscuro}>
-    <span aria-hidden="true">{temaEscuro ? "☾" : "☀"}</span>
-    {temaEscuro ? "Usar modo claro" : "Usar modo escuro"}
-  </button>;
+  return (
+    <button className="alternador-tema" type="button" onClick={alternar} aria-pressed={temaEscuro}>
+      <span aria-hidden="true">{temaEscuro ? "☾" : "☀"}</span>
+      {temaEscuro ? "Usar modo claro" : "Usar modo escuro"}
+    </button>
+  );
 }

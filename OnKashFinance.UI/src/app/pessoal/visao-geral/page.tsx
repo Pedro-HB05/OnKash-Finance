@@ -1,1 +1,2 @@
-import{PaginaDashboard}from"@/componentes/Paginas";export default()=> <PaginaDashboard tipo="pessoal"/>;
+import { PaginaDashboard } from "@/componentes/Paginas";
+export default () => <PaginaDashboard tipo="pessoal" />;

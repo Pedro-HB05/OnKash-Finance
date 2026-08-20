@@ -5,9 +5,7 @@ const apiUrl = (process.env.API_URL ?? "https://onkash-finance.onrender.com").re
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    return apiUrl
-      ? [{ source: "/api/:caminho*", destination: `${apiUrl}/api/:caminho*` }]
-      : [];
+    return apiUrl ? [{ source: "/api/:caminho*", destination: `${apiUrl}/api/:caminho*` }] : [];
   },
 };
 

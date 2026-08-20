@@ -1,1 +1,2 @@
-import{PaginaPessoas}from"@/componentes/Paginas";export default()=> <PaginaPessoas tipo="clientes"/>;
+import { PaginaPessoas } from "@/componentes/Paginas";
+export default () => <PaginaPessoas tipo="clientes" />;
