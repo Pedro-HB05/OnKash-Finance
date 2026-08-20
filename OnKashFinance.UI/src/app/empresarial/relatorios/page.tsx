@@ -1,0 +1,1 @@
+import { AreaAutenticada } from "@/componentes/AreaAutenticada";import { RelatorioFinanceiro } from "@/componentes/RelatorioFinanceiro";export default()=> <AreaAutenticada tipo="empresarial"><RelatorioFinanceiro tipo="empresarial"/></AreaAutenticada>;

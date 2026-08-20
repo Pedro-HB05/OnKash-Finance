@@ -37,6 +37,15 @@ public class CartoesController : ControllerBase
         return Ok(cartao);
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Atualizar(
+        Guid id,
+        AtualizarCartaoRequest request)
+    {
+        await _service.AtualizarAsync(id, request);
+        return NoContent();
+    }
+
     [HttpPost("compras")]
     public async Task<IActionResult> CriarCompra(
         CriarCompraCartaoRequest request)
