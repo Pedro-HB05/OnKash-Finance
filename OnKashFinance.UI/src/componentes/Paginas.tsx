@@ -1,10 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AreaAutenticada } from "@/componentes/AreaAutenticada";
 import { Badge, Cabecalho, Lista, Modal } from "@/componentes/Base";
 import { FormularioBaixa, FormularioSimples } from "@/componentes/Formularios";
 import { MenuAcoes } from "@/componentes/MenuAcoes";
-import { DashboardFinanceiro } from "@/componentes/DashboardFinanceiro";
+import {
+  DashboardFinanceiro,
+  type TipoPeriodoDashboard,
+} from "@/componentes/DashboardFinanceiro";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
 import { ErroApi, requisicao } from "@/servicos/api";
 import type {
@@ -23,9 +26,128 @@ import type {
 } from "@/tipos/api";
 import { data, moeda, textoEnum } from "@/utilitarios/formatadores";
 
+function formatarDataLocal(valor: Date) {
+  const ano = valor.getFullYear();
+  const mes = String(valor.getMonth() + 1).padStart(2, "0");
+  const dia = String(valor.getDate()).padStart(2, "0");
+
+  return `${ano}-${mes}-${dia}`;
+}
+
+function obterIntervaloPeriodo(
+  periodo: TipoPeriodoDashboard,
+  dataInicial: string,
+  dataFinal: string,
+) {
+  const hoje = new Date();
+
+  if (periodo === "TODO") {
+    return { inicio: "", fim: "" };
+  }
+
+  if (periodo === "ULTIMOS_7_DIAS") {
+    const inicio = new Date(hoje);
+    inicio.setDate(hoje.getDate() - 6);
+
+    return {
+      inicio: formatarDataLocal(inicio),
+      fim: formatarDataLocal(hoje),
+    };
+  }
+
+  if (periodo === "MES_ATUAL") {
+    const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+
+    return {
+      inicio: formatarDataLocal(inicio),
+      fim: formatarDataLocal(fim),
+    };
+  }
+
+  if (periodo === "MES_ANTERIOR") {
+    const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+
+    return {
+      inicio: formatarDataLocal(inicio),
+      fim: formatarDataLocal(fim),
+    };
+  }
+
+  if (periodo === "ANO_ATUAL") {
+    return {
+      inicio: `${hoje.getFullYear()}-01-01`,
+      fim: `${hoje.getFullYear()}-12-31`,
+    };
+  }
+
+  return {
+    inicio: dataInicial,
+    fim: dataFinal,
+  };
+}
+
+
+function calcularSaldoAteData(
+  saldoAtual: number,
+  lancamentos: (LancamentoPessoal | LancamentoEmpresarial)[],
+  dataFinal: string,
+  tipo: "pessoal" | "empresarial",
+) {
+  if (!dataFinal) {
+    return saldoAtual;
+  }
+
+  const futuros = lancamentos.filter((lancamento) => {
+    if (lancamento.cancelado) {
+      return false;
+    }
+
+    return lancamento.data > dataFinal;
+  });
+
+  let ajuste = 0;
+
+  if (tipo === "pessoal") {
+    futuros.forEach((lancamento) => {
+      const valor = Number(lancamento.valor);
+
+      if ((lancamento as LancamentoPessoal).tipo === "ENTRADA") {
+        ajuste += valor;
+      } else {
+        ajuste -= valor;
+      }
+    });
+  } else {
+    futuros.forEach((lancamento) => {
+      const valor = Number(lancamento.valor);
+
+      if ((lancamento as LancamentoEmpresarial).tipo === "RECEITA") {
+        ajuste += valor;
+      } else {
+        ajuste -= valor;
+      }
+    });
+  }
+
+  return saldoAtual - ajuste;
+}
+
 export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
   const { sessao } = useAutenticacao();
-  const [dados, setDados] = useState<DashboardPessoal | DashboardEmpresarial | null>(null);
+
+  const [dashboardOriginal, setDashboardOriginal] = useState<
+    DashboardPessoal | DashboardEmpresarial | null
+  >(null);
+
+  const [lancamentos, setLancamentos] = useState<
+    (LancamentoPessoal | LancamentoEmpresarial)[]
+  >([]);
+
+  const [periodo, setPeriodo] = useState<TipoPeriodoDashboard>("MES_ATUAL");
+  const [dataInicial, setDataInicial] = useState("");
+  const [dataFinal, setDataFinal] = useState("");
   const [erro, setErro] = useState("");
 
   useEffect(() => {
@@ -35,56 +157,133 @@ export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
 
     const carregarDashboard = async () => {
       try {
-        const [dashboard, lancamentos] = await Promise.all([
+        setErro("");
+
+        const [dashboard, listaLancamentos] = await Promise.all([
           requisicao<DashboardPessoal | DashboardEmpresarial>(
             `/api/dashboard/${tipo}`,
             {},
             sessao.token,
           ),
           tipo === "pessoal"
-            ? requisicao<LancamentoPessoal[]>("/api/pessoal/lancamentos", {}, sessao.token)
-            : requisicao<LancamentoEmpresarial[]>("/api/empresarial/lancamentos", {}, sessao.token),
+            ? requisicao<LancamentoPessoal[]>(
+                "/api/pessoal/lancamentos",
+                {},
+                sessao.token,
+              )
+            : requisicao<LancamentoEmpresarial[]>(
+                "/api/empresarial/lancamentos",
+                {},
+                sessao.token,
+              ),
         ]);
 
-        if (tipo === "pessoal") {
-          const lancamentosPessoais = lancamentos as LancamentoPessoal[];
-          const entradas = lancamentosPessoais
-            .filter((lancamento) => !lancamento.cancelado && lancamento.tipo === "ENTRADA")
-            .reduce((total, lancamento) => total + lancamento.valor, 0);
-          const saidas = lancamentosPessoais
-            .filter((lancamento) => !lancamento.cancelado && lancamento.tipo === "SAIDA")
-            .reduce((total, lancamento) => total + lancamento.valor, 0);
-
-          setDados({
-            ...(dashboard as DashboardPessoal),
-            entradas,
-            saidas,
-            resultadoMes: entradas - saidas,
-          });
-          return;
-        }
-
-        const lancamentosEmpresariais = lancamentos as LancamentoEmpresarial[];
-        const entradas = lancamentosEmpresariais
-          .filter((lancamento) => !lancamento.cancelado && lancamento.tipo === "RECEITA")
-          .reduce((total, lancamento) => total + lancamento.valor, 0);
-        const saidas = lancamentosEmpresariais
-          .filter((lancamento) => !lancamento.cancelado && lancamento.tipo === "DESPESA")
-          .reduce((total, lancamento) => total + lancamento.valor, 0);
-
-        setDados({
-          ...(dashboard as DashboardEmpresarial),
-          entradas,
-          saidas,
-          resultado: entradas - saidas,
-        });
+        setDashboardOriginal(dashboard);
+        setLancamentos(listaLancamentos);
       } catch (falha) {
-        setErro(falha instanceof Error ? falha.message : "Não foi possível carregar o dashboard.");
+        setErro(
+          falha instanceof Error
+            ? falha.message
+            : "Não foi possível carregar o dashboard.",
+        );
       }
     };
 
     void carregarDashboard();
   }, [sessao, tipo]);
+
+  const dados = useMemo<DashboardPessoal | DashboardEmpresarial | null>(() => {
+    if (!dashboardOriginal) {
+      return null;
+    }
+
+    const intervalo = obterIntervaloPeriodo(periodo, dataInicial, dataFinal);
+
+    const filtrados = lancamentos.filter((lancamento) => {
+      if (lancamento.cancelado) {
+        return false;
+      }
+
+      if (intervalo.inicio && lancamento.data < intervalo.inicio) {
+        return false;
+      }
+
+      if (intervalo.fim && lancamento.data > intervalo.fim) {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (tipo === "pessoal") {
+      const pessoais = filtrados as LancamentoPessoal[];
+
+      const entradas = pessoais
+        .filter((lancamento) => lancamento.tipo === "ENTRADA")
+        .reduce((total, lancamento) => total + Number(lancamento.valor), 0);
+
+      const saidas = pessoais
+        .filter((lancamento) => lancamento.tipo === "SAIDA")
+        .reduce((total, lancamento) => total + Number(lancamento.valor), 0);
+
+      const saldoPeriodo = calcularSaldoAteData(
+        dashboardOriginal.saldo,
+        lancamentos,
+        intervalo.fim,
+        tipo,
+      );
+
+      return {
+        ...(dashboardOriginal as DashboardPessoal),
+        saldo: saldoPeriodo,
+        entradas,
+        saidas,
+        resultadoMes: entradas - saidas,
+      };
+    }
+
+    const empresariais = filtrados as LancamentoEmpresarial[];
+
+    const entradas = empresariais
+      .filter((lancamento) => lancamento.tipo === "RECEITA")
+      .reduce((total, lancamento) => total + Number(lancamento.valor), 0);
+
+    const saidas = empresariais
+      .filter((lancamento) => lancamento.tipo === "DESPESA")
+      .reduce((total, lancamento) => total + Number(lancamento.valor), 0);
+
+    const saldoPeriodo = calcularSaldoAteData(
+      dashboardOriginal.saldo,
+      lancamentos,
+      intervalo.fim,
+      tipo,
+    );
+
+    return {
+      ...(dashboardOriginal as DashboardEmpresarial),
+      saldo: saldoPeriodo,
+      entradas,
+      saidas,
+      resultado: entradas - saidas,
+    };
+  }, [
+    dashboardOriginal,
+    lancamentos,
+    periodo,
+    dataInicial,
+    dataFinal,
+    tipo,
+  ]);
+
+  const alterarPeriodo = (novoPeriodo: TipoPeriodoDashboard) => {
+    setPeriodo(novoPeriodo);
+
+    if (novoPeriodo !== "PERSONALIZADO") {
+      setDataInicial("");
+      setDataFinal("");
+    }
+  };
+
   return (
     <AreaAutenticada tipo={tipo}>
       {erro ? (
@@ -92,7 +291,16 @@ export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
       ) : !dados ? (
         <p className="estado">Carregando seu resumo financeiro...</p>
       ) : (
-        <DashboardFinanceiro tipo={tipo} dados={dados} />
+        <DashboardFinanceiro
+          tipo={tipo}
+          dados={dados}
+          periodo={periodo}
+          dataInicial={dataInicial}
+          dataFinal={dataFinal}
+          alterarPeriodo={alterarPeriodo}
+          alterarDataInicial={setDataInicial}
+          alterarDataFinal={setDataFinal}
+        />
       )}
     </AreaAutenticada>
   );

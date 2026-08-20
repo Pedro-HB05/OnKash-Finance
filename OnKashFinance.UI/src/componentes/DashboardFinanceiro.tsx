@@ -18,46 +18,127 @@ import {
   YAxis,
 } from "recharts";
 
-import type { DashboardEmpresarial, DashboardPessoal } from "@/tipos/api";
+import type {
+  DashboardEmpresarial,
+  DashboardPessoal,
+} from "@/tipos/api";
 import { moeda } from "@/utilitarios/formatadores";
 
-type Dados = DashboardPessoal | DashboardEmpresarial;
+type Dados =
+  | DashboardPessoal
+  | DashboardEmpresarial;
+
+export type TipoPeriodoDashboard =
+  | "TODO"
+  | "MES_ATUAL"
+  | "MES_ANTERIOR"
+  | "ULTIMOS_7_DIAS"
+  | "ANO_ATUAL"
+  | "PERSONALIZADO";
 
 type DashboardFinanceiroProps = {
   tipo: "pessoal" | "empresarial";
   dados: Dados;
+
+  periodo: TipoPeriodoDashboard;
+
+  dataInicial: string;
+  dataFinal: string;
+
+  alterarPeriodo: (
+    periodo: TipoPeriodoDashboard,
+  ) => void;
+
+  alterarDataInicial: (
+    valor: string,
+  ) => void;
+
+  alterarDataFinal: (
+    valor: string,
+  ) => void;
 };
 
 function isDashboardEmpresarial(
   dados: Dados,
   tipo: "pessoal" | "empresarial",
 ): dados is DashboardEmpresarial {
-  return tipo === "empresarial" && "resultado" in dados;
+  return (
+    tipo === "empresarial" &&
+    "resultado" in dados
+  );
 }
 
-function valorNumerico(valor: unknown): number {
+function valorNumerico(
+  valor: unknown,
+): number {
   const numero = Number(valor);
 
-  return Number.isFinite(numero) ? numero : 0;
+  return Number.isFinite(numero)
+    ? numero
+    : 0;
+}
+
+function nomePeriodo(
+  periodo: TipoPeriodoDashboard,
+) {
+  switch (periodo) {
+    case "MES_ATUAL":
+      return "Este mês";
+
+    case "MES_ANTERIOR":
+      return "Mês anterior";
+
+    case "ULTIMOS_7_DIAS":
+      return "Últimos 7 dias";
+
+    case "ANO_ATUAL":
+      return "Este ano";
+
+    case "PERSONALIZADO":
+      return "Período personalizado";
+
+    default:
+      return "Todo o período";
+  }
 }
 
 export function DashboardFinanceiro({
   tipo,
   dados,
+  periodo,
+  dataInicial,
+  dataFinal,
+  alterarPeriodo,
+  alterarDataInicial,
+  alterarDataFinal,
 }: DashboardFinanceiroProps) {
-  const empresarial = isDashboardEmpresarial(dados, tipo);
+  const empresarial =
+    isDashboardEmpresarial(
+      dados,
+      tipo,
+    );
 
-  const saldo = valorNumerico(dados.saldo);
-  const entradas = valorNumerico(dados.entradas);
-  const saidas = valorNumerico(dados.saidas);
+  const saldo = valorNumerico(
+    dados.saldo,
+  );
+
+  const entradas = valorNumerico(
+    dados.entradas,
+  );
+
+  const saidas = valorNumerico(
+    dados.saidas,
+  );
 
   const resultado = valorNumerico(
-    empresarial ? dados.resultado : dados.resultadoMes,
+    empresarial
+      ? dados.resultado
+      : dados.resultadoMes,
   );
 
   const barras = [
     {
-      nome: empresarial ? "Fluxo atual" : "Mês atual",
+      nome: nomePeriodo(periodo),
       entradas,
       saidas,
     },
@@ -67,26 +148,113 @@ export function DashboardFinanceiro({
     <section className="painel-dashboard">
       <header className="hero-financeiro">
         <div>
-          <p className="sobre-titulo">Visão financeira</p>
-          <h1>Seu dinheiro, com clareza.</h1>
-          <p>Acompanhe os principais números de todos os lançamentos.</p>
+          <p className="sobre-titulo">
+            Visão financeira
+          </p>
+
+          <h1>
+            Seu dinheiro, com clareza.
+          </h1>
+
+          <p>
+            Acompanhe os principais
+            números dos seus lançamentos.
+          </p>
         </div>
 
         <div className="periodo-visual">
           <CalendarClock size={18} />
-          <span>Todo o período</span>
+
+          <select
+            value={periodo}
+            onChange={(evento) =>
+              alterarPeriodo(
+                evento.target
+                  .value as TipoPeriodoDashboard,
+              )
+            }
+            aria-label="Selecionar período"
+          >
+            <option value="TODO">
+              Todo o período
+            </option>
+
+            <option value="MES_ATUAL">
+              Este mês
+            </option>
+
+            <option value="MES_ANTERIOR">
+              Mês anterior
+            </option>
+
+            <option value="ULTIMOS_7_DIAS">
+              Últimos 7 dias
+            </option>
+
+            <option value="ANO_ATUAL">
+              Este ano
+            </option>
+
+            <option value="PERSONALIZADO">
+              Personalizado
+            </option>
+          </select>
         </div>
       </header>
 
-      <section className="saldo-principal" aria-label="Resumo de saldo">
-        <div>
-          <span className="rotulo-card">Saldo total</span>
+      {periodo ===
+        "PERSONALIZADO" && (
+        <section
+          className="filtro-periodo-personalizado"
+          aria-label="Período personalizado"
+        >
+          <label className="campo">
+            Data inicial
 
-          <strong>{moeda(saldo)}</strong>
+            <input
+              type="date"
+              value={dataInicial}
+              onChange={(evento) =>
+                alterarDataInicial(
+                  evento.target.value,
+                )
+              }
+            />
+          </label>
+
+          <label className="campo">
+            Data final
+
+            <input
+              type="date"
+              value={dataFinal}
+              onChange={(evento) =>
+                alterarDataFinal(
+                  evento.target.value,
+                )
+              }
+            />
+          </label>
+        </section>
+      )}
+
+      <section
+        className="saldo-principal"
+        aria-label="Resumo de saldo"
+      >
+        <div>
+          <span className="rotulo-card">
+            Saldo total
+          </span>
+
+          <strong>
+            {moeda(saldo)}
+          </strong>
 
           <p>
             <TrendingUp size={17} />
-            Valor disponível nas suas contas
+            Valor disponível nas suas
+            contas
           </p>
         </div>
 
@@ -112,8 +280,14 @@ export function DashboardFinanceiro({
 
           <div>
             <span>Entradas</span>
-            <strong>{moeda(entradas)}</strong>
-            <small>Valores que entraram</small>
+
+            <strong>
+              {moeda(entradas)}
+            </strong>
+
+            <small>
+              Entradas no período
+            </small>
           </div>
         </article>
 
@@ -124,25 +298,40 @@ export function DashboardFinanceiro({
 
           <div>
             <span>Saídas</span>
-            <strong>{moeda(saidas)}</strong>
-            <small>Valores que saíram</small>
+
+            <strong>
+              {moeda(saidas)}
+            </strong>
+
+            <small>
+              Saídas no período
+            </small>
           </div>
         </article>
 
         <article className="indicador resultado">
           <span className="icone-indicador">
-            <CircleDollarSign size={20} />
+            <CircleDollarSign
+              size={20}
+            />
           </span>
 
           <div>
-            <span>Resultado</span>
+            <span>
+              Sobra do período
+            </span>
 
             <strong>
-              {resultado > 0 ? "+ " : ""}
+              {resultado > 0
+                ? "+ "
+                : ""}
+
               {moeda(resultado)}
             </strong>
 
-            <small>Resultado do período</small>
+            <small>
+              Entradas menos saídas
+            </small>
           </div>
         </article>
       </section>
@@ -150,12 +339,21 @@ export function DashboardFinanceiro({
       <section className="grade-analise">
         <article
           className="painel-grafico"
-          style={{ gridColumn: "1 / -1" }}
+          style={{
+            gridColumn: "1 / -1",
+          }}
         >
           <div className="titulo-painel">
             <div>
-              <span className="sobre-titulo">Resumo</span>
-              <h2>Entradas e saídas</h2>
+              <span className="sobre-titulo">
+                {nomePeriodo(
+                  periodo,
+                )}
+              </span>
+
+              <h2>
+                Entradas e saídas
+              </h2>
             </div>
 
             <span className="legenda-grafico">
@@ -168,8 +366,14 @@ export function DashboardFinanceiro({
           </div>
 
           <div className="grafico">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barras} barGap={8}>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+              <BarChart
+                data={barras}
+                barGap={8}
+              >
                 <CartesianGrid
                   vertical={false}
                   stroke="var(--borda)"
@@ -189,7 +393,13 @@ export function DashboardFinanceiro({
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(valor) => moeda(Number(valor))}
+                  tickFormatter={(
+                    valor,
+                  ) =>
+                    moeda(
+                      Number(valor),
+                    )
+                  }
                   tick={{
                     fill: "var(--texto2)",
                     fontSize: 12,
@@ -197,13 +407,24 @@ export function DashboardFinanceiro({
                 />
 
                 <Tooltip
-                  cursor={{ fill: "var(--suave)" }}
-                  formatter={(valor) => moeda(valorNumerico(valor))}
+                  cursor={{
+                    fill: "var(--suave)",
+                  }}
+                  formatter={(valor) =>
+                    moeda(
+                      valorNumerico(
+                        valor,
+                      ),
+                    )
+                  }
                   contentStyle={{
-                    background: "var(--superficie)",
-                    border: "1px solid var(--borda)",
+                    background:
+                      "var(--superficie)",
+                    border:
+                      "1px solid var(--borda)",
                     borderRadius: 12,
-                    color: "var(--texto)",
+                    color:
+                      "var(--texto)",
                   }}
                 />
 
@@ -211,7 +432,12 @@ export function DashboardFinanceiro({
                   dataKey="entradas"
                   name="Entradas"
                   fill="var(--receita)"
-                  radius={[7, 7, 0, 0]}
+                  radius={[
+                    7,
+                    7,
+                    0,
+                    0,
+                  ]}
                   maxBarSize={62}
                 />
 
@@ -219,7 +445,12 @@ export function DashboardFinanceiro({
                   dataKey="saidas"
                   name="Saídas"
                   fill="var(--despesa)"
-                  radius={[7, 7, 0, 0]}
+                  radius={[
+                    7,
+                    7,
+                    0,
+                    0,
+                  ]}
                   maxBarSize={62}
                 />
               </BarChart>

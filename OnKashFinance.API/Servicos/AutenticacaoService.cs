@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.Net.Mail;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OnKashFinance.API.Autenticacao;
 using OnKashFinance.API.Dados;
@@ -42,6 +43,8 @@ public class AutenticacaoService
             .Trim()
             .ToLowerInvariant();
 
+        ValidarEmail(email);
+
         var emailExiste = await _db.Usuarios
             .AnyAsync(x => x.Email.ToLower() == email);
 
@@ -72,13 +75,11 @@ public class AutenticacaoService
             usuario.SenhaHash =
                 _passwordHasher.HashPassword(
                     usuario,
-                    request.Senha
-                );
+                    request.Senha);
 
             _db.Usuarios.Add(usuario);
 
-            if (request.TipoConta ==
-                TipoContaUsuario.EMPRESARIAL)
+            if (request.TipoConta == TipoContaUsuario.EMPRESARIAL)
             {
                 var empresa = new Empresa
                 {
@@ -97,7 +98,6 @@ public class AutenticacaoService
                 var permissoes = new PermissaoEmpresa
                 {
                     EmpresaUsuario = empresaUsuario,
-
                     Dashboard = true,
                     Lancamentos = true,
                     Contas = true,
@@ -127,6 +127,38 @@ public class AutenticacaoService
         }
     }
 
+
+    private static void ValidarEmail(string email)
+    {
+        try
+        {
+            var endereco = new MailAddress(email);
+
+            var dominiosPermitidos = new[]
+            {
+                "gmail.com",
+                "hotmail.com",
+                "outlook.com",
+                "yahoo.com",
+                "yahoo.com.br"
+            };
+
+            var dominio = endereco.Host.ToLowerInvariant();
+
+            if (!dominiosPermitidos.Contains(dominio))
+            {
+                throw new InvalidOperationException(
+                    "Utilize um e-mail Gmail, Hotmail, Outlook ou Yahoo.");
+            }
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException(
+                "E-mail inválido.");
+        }
+    }
+
+
     public async Task<LoginResposta> LoginAsync(
         LoginRequest request)
     {
@@ -137,8 +169,7 @@ public class AutenticacaoService
         var usuario = await _db.Usuarios
             .AsNoTracking()
             .FirstOrDefaultAsync(
-                x => x.Email.ToLower() == email
-            );
+                x => x.Email.ToLower() == email);
 
         if (usuario is null || !usuario.Ativo)
         {
@@ -146,11 +177,11 @@ public class AutenticacaoService
                 "E-mail ou senha inválidos.");
         }
 
-        var resultado = _passwordHasher.VerifyHashedPassword(
-            usuario,
-            usuario.SenhaHash,
-            request.Senha
-        );
+        var resultado =
+            _passwordHasher.VerifyHashedPassword(
+                usuario,
+                usuario.SenhaHash,
+                request.Senha);
 
         if (resultado == PasswordVerificationResult.Failed)
         {
@@ -161,8 +192,7 @@ public class AutenticacaoService
         Guid? empresaId = null;
         PerfilEmpresa? perfil = null;
 
-        if (usuario.TipoConta ==
-            TipoContaUsuario.EMPRESARIAL)
+        if (usuario.TipoConta == TipoContaUsuario.EMPRESARIAL)
         {
             var vinculo = await _db.EmpresaUsuarios
                 .AsNoTracking()
@@ -186,8 +216,7 @@ public class AutenticacaoService
         var token = _jwtService.GerarToken(
             usuario,
             empresaId,
-            perfil
-        );
+            perfil);
 
         return new LoginResposta
         {
