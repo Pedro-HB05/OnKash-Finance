@@ -200,20 +200,28 @@ export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
     const intervalo = obterIntervaloPeriodo(periodo, dataInicial, dataFinal);
 
     const filtrados = lancamentos.filter((lancamento) => {
-      if (lancamento.cancelado) {
-        return false;
-      }
+  if (lancamento.cancelado) {
+    return false;
+  }
 
-      if (intervalo.inicio && lancamento.data < intervalo.inicio) {
-        return false;
-      }
+  const dataLancamento = lancamento.data.substring(0, 10);
 
-      if (intervalo.fim && lancamento.data > intervalo.fim) {
-        return false;
-      }
+  if (
+    intervalo.inicio &&
+    dataLancamento < intervalo.inicio
+  ) {
+    return false;
+  }
 
-      return true;
-    });
+  if (
+    intervalo.fim &&
+    dataLancamento > intervalo.fim
+  ) {
+    return false;
+  }
+
+  return true;
+});
 
     if (tipo === "pessoal") {
       const pessoais = filtrados as LancamentoPessoal[];
