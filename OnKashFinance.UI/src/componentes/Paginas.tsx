@@ -23,22 +23,9 @@ import type {
 } from "@/tipos/api";
 import { data, moeda, textoEnum } from "@/utilitarios/formatadores";
 
-type GastoPorCategoria = {
-  categoria: string;
-  valor: number;
-};
-
-const estaNoMesAtual = (dataLancamento: string) => {
-  const hoje = new Date();
-  const anoMesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
-
-  return dataLancamento.startsWith(anoMesAtual);
-};
-
 export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
   const { sessao } = useAutenticacao();
   const [dados, setDados] = useState<DashboardPessoal | DashboardEmpresarial | null>(null);
-  const [gastosPorCategoria, setGastosPorCategoria] = useState<GastoPorCategoria[]>([]);
   const [erro, setErro] = useState("");
 
   useEffect(() => {
@@ -58,24 +45,6 @@ export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
             ? requisicao<LancamentoPessoal[]>("/api/pessoal/lancamentos", {}, sessao.token)
             : requisicao<LancamentoEmpresarial[]>("/api/empresarial/lancamentos", {}, sessao.token),
         ]);
-
-        const despesasDoPeriodo = lancamentos.filter(
-          (lancamento) =>
-            !lancamento.cancelado &&
-            estaNoMesAtual(lancamento.data) &&
-            lancamento.tipo === (tipo === "pessoal" ? "SAIDA" : "DESPESA"),
-        );
-        const totaisPorCategoria = despesasDoPeriodo.reduce((totais, lancamento) => {
-          const categoria = lancamento.categoria ?? "Sem categoria";
-          totais.set(categoria, (totais.get(categoria) ?? 0) + lancamento.valor);
-          return totais;
-        }, new Map<string, number>());
-
-        setGastosPorCategoria(
-          Array.from(totaisPorCategoria, ([categoria, valor]) => ({ categoria, valor })).sort(
-            (primeiro, segundo) => segundo.valor - primeiro.valor,
-          ),
-        );
 
         if (tipo === "pessoal") {
           const lancamentosPessoais = lancamentos as LancamentoPessoal[];
@@ -123,7 +92,7 @@ export function PaginaDashboard({ tipo }: { tipo: "pessoal" | "empresarial" }) {
       ) : !dados ? (
         <p className="estado">Carregando seu resumo financeiro...</p>
       ) : (
-        <DashboardFinanceiro tipo={tipo} dados={dados} gastosPorCategoria={gastosPorCategoria} />
+        <DashboardFinanceiro tipo={tipo} dados={dados} />
       )}
     </AreaAutenticada>
   );
