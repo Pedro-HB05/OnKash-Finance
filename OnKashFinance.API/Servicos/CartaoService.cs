@@ -30,8 +30,7 @@ public class CartaoService
         return _usuarioAtual.ObterUsuarioId();
     }
 
-    public async Task<List<CartaoResposta>>
-        ListarAsync()
+    public async Task<List<CartaoResposta>> ListarAsync()
     {
         var usuarioId = ObterUsuario();
 
@@ -45,47 +44,24 @@ public class CartaoService
                 Nome = x.Nome,
                 Instituicao = x.Instituicao,
                 Limite = x.Limite,
-                DiaFechamento = x.DiaFechamento,
-                DiaVencimento = x.DiaVencimento,
+                DataFechamento = x.DataFechamento,
+                DataVencimento = x.DataVencimento,
                 Ativo = x.Ativo
             })
             .ToListAsync();
     }
 
-    public async Task<CartaoResposta>
-        CriarAsync(CriarCartaoRequest request)
+    public async Task<CartaoResposta> CriarAsync(
+        CriarCartaoRequest request)
     {
         var usuarioId = ObterUsuario();
 
-        if (string.IsNullOrWhiteSpace(request.Nome))
-        {
-            throw new InvalidOperationException(
-                "O nome do cartão é obrigatório.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Instituicao))
-        {
-            throw new InvalidOperationException(
-                "A instituição é obrigatória.");
-        }
-
-        if (request.Limite < 0)
-        {
-            throw new InvalidOperationException(
-                "O limite não pode ser negativo.");
-        }
-
-        if (request.DiaFechamento is < 1 or > 31)
-        {
-            throw new InvalidOperationException(
-                "Dia de fechamento inválido.");
-        }
-
-        if (request.DiaVencimento is < 1 or > 31)
-        {
-            throw new InvalidOperationException(
-                "Dia de vencimento inválido.");
-        }
+        ValidarCartao(
+            request.Nome,
+            request.Instituicao,
+            request.Limite,
+            request.DataFechamento,
+            request.DataVencimento);
 
         var cartao = new CartaoPessoal
         {
@@ -93,8 +69,8 @@ public class CartaoService
             Nome = request.Nome.Trim(),
             Instituicao = request.Instituicao.Trim(),
             Limite = request.Limite,
-            DiaFechamento = request.DiaFechamento,
-            DiaVencimento = request.DiaVencimento,
+            DataFechamento = request.DataFechamento,
+            DataVencimento = request.DataVencimento,
             Ativo = true
         };
 
@@ -108,47 +84,24 @@ public class CartaoService
             Nome = cartao.Nome,
             Instituicao = cartao.Instituicao,
             Limite = cartao.Limite,
-            DiaFechamento = cartao.DiaFechamento,
-            DiaVencimento = cartao.DiaVencimento,
+            DataFechamento = cartao.DataFechamento,
+            DataVencimento = cartao.DataVencimento,
             Ativo = cartao.Ativo
         };
     }
 
     public async Task AtualizarAsync(
-        Guid id,
-        AtualizarCartaoRequest request)
+    Guid id,
+    AtualizarCartaoRequest request)
     {
         var usuarioId = ObterUsuario();
 
-        if (string.IsNullOrWhiteSpace(request.Nome))
-        {
-            throw new InvalidOperationException(
-                "O nome do cartão é obrigatório.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Instituicao))
-        {
-            throw new InvalidOperationException(
-                "A instituição é obrigatória.");
-        }
-
-        if (request.Limite < 0)
-        {
-            throw new InvalidOperationException(
-                "O limite não pode ser negativo.");
-        }
-
-        if (request.DiaFechamento is < 1 or > 31)
-        {
-            throw new InvalidOperationException(
-                "Dia de fechamento inválido.");
-        }
-
-        if (request.DiaVencimento is < 1 or > 31)
-        {
-            throw new InvalidOperationException(
-                "Dia de vencimento inválido.");
-        }
+        ValidarCartao(
+            request.Nome,
+            request.Instituicao,
+            request.Limite,
+            request.DataFechamento,
+            request.DataVencimento);
 
         var cartao = await _db.CartoesPessoais
             .FirstOrDefaultAsync(x =>
@@ -161,19 +114,35 @@ public class CartaoService
                 "Cartão não encontrado.");
         }
 
+        var datasAlteradas =
+            cartao.DataFechamento != request.DataFechamento ||
+            cartao.DataVencimento != request.DataVencimento;
+
+        if (datasAlteradas)
+        {
+            var possuiFaturas = await _db.FaturasPessoais
+                .AsNoTracking()
+                .AnyAsync(x => x.CartaoId == cartao.Id);
+
+            if (possuiFaturas)
+            {
+                throw new InvalidOperationException(
+                    "Não é possível alterar as datas de fechamento e vencimento de um cartão que já possui faturas.");
+            }
+        }
+
         cartao.Nome = request.Nome.Trim();
         cartao.Instituicao = request.Instituicao.Trim();
         cartao.Limite = request.Limite;
-        cartao.DiaFechamento = request.DiaFechamento;
-        cartao.DiaVencimento = request.DiaVencimento;
+        cartao.DataFechamento = request.DataFechamento;
+        cartao.DataVencimento = request.DataVencimento;
         cartao.Ativo = request.Ativo;
 
         await _db.SaveChangesAsync();
     }
 
-    public async Task<CompraCartaoResposta>
-        CriarCompraAsync(
-            CriarCompraCartaoRequest request)
+    public async Task<CompraCartaoResposta> CriarCompraAsync(
+        CriarCompraCartaoRequest request)
     {
         var usuarioId = ObterUsuario();
 
@@ -222,8 +191,7 @@ public class CartaoService
         }
 
         var valorParcela = Math.Round(
-            request.ValorTotal /
-            request.NumeroParcelas,
+            request.ValorTotal / request.NumeroParcelas,
             2,
             MidpointRounding.AwayFromZero);
 
@@ -242,32 +210,28 @@ public class CartaoService
 
         _db.ComprasCartaoPessoais.Add(compra);
 
-        var primeiraFatura =
-            ObterPrimeiraFatura(
-                cartao,
-                request.DataCompra);
+        var primeiraFatura = ObterPrimeiraFatura(
+            cartao,
+            request.DataCompra);
 
         for (var numero = 1;
              numero <= request.NumeroParcelas;
              numero++)
         {
-            var mesFechamento =
-                primeiraFatura.Fechamento
-                    .AddMonths(numero - 1);
+            var mesFechamento = new DateOnly(
+                    primeiraFatura.Fechamento.Year,
+                    primeiraFatura.Fechamento.Month,
+                    1)
+                .AddMonths(numero - 1);
 
             var fechamento = CriarData(
                 mesFechamento.Year,
                 mesFechamento.Month,
-                cartao.DiaFechamento);
+                cartao.DataFechamento.Day);
 
-            var mesVencimento =
-                primeiraFatura.Vencimento
-                    .AddMonths(numero - 1);
-
-            var vencimento = CriarData(
-                mesVencimento.Year,
-                mesVencimento.Month,
-                cartao.DiaVencimento);
+            var vencimento = CalcularVencimento(
+                cartao,
+                fechamento);
 
             var competencia = new DateOnly(
                 vencimento.Year,
@@ -328,8 +292,8 @@ public class CartaoService
         };
     }
 
-    public async Task<List<FaturaResposta>>
-        ListarFaturasAsync(Guid? cartaoId = null)
+    public async Task<List<FaturaResposta>> ListarFaturasAsync(
+        Guid? cartaoId = null)
     {
         var usuarioId = ObterUsuario();
 
@@ -355,13 +319,9 @@ public class CartaoService
                 DataFechamento = x.DataFechamento,
                 DataVencimento = x.DataVencimento,
                 Status = x.Status,
-                ValorTotal =
-                    x.Parcelas
-                        .Where(p =>
-                            !p.Compra.Cancelada)
-                        .Sum(p =>
-                            (decimal?)p.Valor)
-                    ?? 0
+                ValorTotal = x.Parcelas
+                    .Where(p => !p.Compra.Cancelada)
+                    .Sum(p => (decimal?)p.Valor) ?? 0
             })
             .ToListAsync();
     }
@@ -392,11 +352,10 @@ public class CartaoService
                 "A fatura já foi paga.");
         }
 
-        var pagamentoExistente =
-            await _db.LancamentosPessoais
-                .AnyAsync(x =>
-                    x.FaturaId == fatura.Id &&
-                    !x.Cancelado);
+        var pagamentoExistente = await _db.LancamentosPessoais
+            .AnyAsync(x =>
+                x.FaturaId == fatura.Id &&
+                !x.Cancelado);
 
         if (pagamentoExistente)
         {
@@ -449,11 +408,13 @@ public class CartaoService
     }
 
     public async Task CancelarCompraAsync(
-        Guid compraId)
+    Guid compraId)
     {
         var usuarioId = ObterUsuario();
 
         var compra = await _db.ComprasCartaoPessoais
+            .Include(x => x.Parcelas)
+                .ThenInclude(x => x.Fatura)
             .FirstOrDefaultAsync(x =>
                 x.Id == compraId &&
                 x.Cartao.UsuarioId == usuarioId);
@@ -469,11 +430,65 @@ public class CartaoService
             return;
         }
 
+        var possuiFaturaPaga = compra.Parcelas.Any(
+            parcela =>
+                parcela.Fatura != null &&
+                parcela.Fatura.Status == StatusFatura.PAGA);
+
+        if (possuiFaturaPaga)
+        {
+            throw new InvalidOperationException(
+                "Não é possível cancelar uma compra que possui parcela em fatura paga.");
+        }
+
         compra.Cancelada = true;
-        compra.CanceladaEm =
-            DateTimeOffset.UtcNow;
+        compra.CanceladaEm = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync();
+    }
+
+    private static void ValidarCartao(
+        string nome,
+        string instituicao,
+        decimal limite,
+        DateOnly dataFechamento,
+        DateOnly dataVencimento)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            throw new InvalidOperationException(
+                "O nome do cartão é obrigatório.");
+        }
+
+        if (string.IsNullOrWhiteSpace(instituicao))
+        {
+            throw new InvalidOperationException(
+                "A instituição é obrigatória.");
+        }
+
+        if (limite < 0)
+        {
+            throw new InvalidOperationException(
+                "O limite não pode ser negativo.");
+        }
+
+        if (dataFechamento == default)
+        {
+            throw new InvalidOperationException(
+                "A data de fechamento é obrigatória.");
+        }
+
+        if (dataVencimento == default)
+        {
+            throw new InvalidOperationException(
+                "A data de vencimento é obrigatória.");
+        }
+
+        if (dataVencimento <= dataFechamento)
+        {
+            throw new InvalidOperationException(
+                "A data de vencimento deve ser posterior à data de fechamento.");
+        }
     }
 
     private static (
@@ -483,46 +498,74 @@ public class CartaoService
             CartaoPessoal cartao,
             DateOnly dataCompra)
     {
+        if (dataCompra <= cartao.DataFechamento)
+        {
+            return (
+                cartao.DataFechamento,
+                cartao.DataVencimento);
+        }
+
+        var meses = DiferencaMeses(
+            cartao.DataFechamento,
+            dataCompra);
+
+        var mesReferencia = new DateOnly(
+                cartao.DataFechamento.Year,
+                cartao.DataFechamento.Month,
+                1)
+            .AddMonths(meses);
+
         var fechamento = CriarData(
-            dataCompra.Year,
-            dataCompra.Month,
-            cartao.DiaFechamento);
+            mesReferencia.Year,
+            mesReferencia.Month,
+            cartao.DataFechamento.Day);
 
         if (dataCompra > fechamento)
         {
-            var proximoMesCompra =
-                dataCompra.AddMonths(1);
+            mesReferencia = mesReferencia.AddMonths(1);
 
             fechamento = CriarData(
-                proximoMesCompra.Year,
-                proximoMesCompra.Month,
-                cartao.DiaFechamento);
+                mesReferencia.Year,
+                mesReferencia.Month,
+                cartao.DataFechamento.Day);
         }
 
-        DateOnly vencimento;
-
-        if (cartao.DiaVencimento >
-            cartao.DiaFechamento)
-        {
-            vencimento = CriarData(
-                fechamento.Year,
-                fechamento.Month,
-                cartao.DiaVencimento);
-        }
-        else
-        {
-            var proximoMes =
-                fechamento.AddMonths(1);
-
-            vencimento = CriarData(
-                proximoMes.Year,
-                proximoMes.Month,
-                cartao.DiaVencimento);
-        }
+        var vencimento = CalcularVencimento(
+            cartao,
+            fechamento);
 
         return (
             fechamento,
             vencimento);
+    }
+
+    private static DateOnly CalcularVencimento(
+        CartaoPessoal cartao,
+        DateOnly fechamento)
+    {
+        var diferencaMeses = DiferencaMeses(
+            cartao.DataFechamento,
+            cartao.DataVencimento);
+
+        var mesVencimento = new DateOnly(
+                fechamento.Year,
+                fechamento.Month,
+                1)
+            .AddMonths(diferencaMeses);
+
+        return CriarData(
+            mesVencimento.Year,
+            mesVencimento.Month,
+            cartao.DataVencimento.Day);
+    }
+
+    private static int DiferencaMeses(
+        DateOnly inicio,
+        DateOnly fim)
+    {
+        return (fim.Year - inicio.Year) * 12 +
+               fim.Month -
+               inicio.Month;
     }
 
     private static DateOnly CriarData(

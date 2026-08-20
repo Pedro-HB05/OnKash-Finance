@@ -12,9 +12,9 @@ public class CartaoPessoal
 
     public decimal Limite { get; set; }
 
-    public short DiaFechamento { get; set; }
+    public DateOnly DataFechamento { get; set; }
 
-    public short DiaVencimento { get; set; }
+    public DateOnly DataVencimento { get; set; }
 
     public bool Ativo { get; set; } = true;
 

@@ -7,8 +7,8 @@ public class CriarCartaoRequest
     public string Nome { get; set; } = string.Empty;
     public string Instituicao { get; set; } = string.Empty;
     public decimal Limite { get; set; }
-    public short DiaFechamento { get; set; }
-    public short DiaVencimento { get; set; }
+    public DateOnly DataFechamento { get; set; }
+    public DateOnly DataVencimento { get; set; }
 }
 
 public class AtualizarCartaoRequest
@@ -16,8 +16,8 @@ public class AtualizarCartaoRequest
     public string Nome { get; set; } = string.Empty;
     public string Instituicao { get; set; } = string.Empty;
     public decimal Limite { get; set; }
-    public short DiaFechamento { get; set; }
-    public short DiaVencimento { get; set; }
+    public DateOnly DataFechamento { get; set; }
+    public DateOnly DataVencimento { get; set; }
     public bool Ativo { get; set; }
 }
 
@@ -27,8 +27,8 @@ public class CartaoResposta
     public string Nome { get; set; } = string.Empty;
     public string Instituicao { get; set; } = string.Empty;
     public decimal Limite { get; set; }
-    public short DiaFechamento { get; set; }
-    public short DiaVencimento { get; set; }
+    public DateOnly DataFechamento { get; set; }
+    public DateOnly DataVencimento { get; set; }
     public bool Ativo { get; set; }
 }
 

@@ -110,7 +110,8 @@ public static class MapeamentoPessoal
             .HasColumnName("id")
             .HasDefaultValueSql("gen_random_uuid()");
 
-        entidade.Property(x => x.UsuarioId).HasColumnName("usuario_id");
+        entidade.Property(x => x.UsuarioId)
+            .HasColumnName("usuario_id");
 
         entidade.Property(x => x.Nome)
             .HasColumnName("nome")
@@ -127,8 +128,15 @@ public static class MapeamentoPessoal
             .HasPrecision(15, 2)
             .HasDefaultValue(0m);
 
-        entidade.Property(x => x.DiaFechamento).HasColumnName("dia_fechamento");
-        entidade.Property(x => x.DiaVencimento).HasColumnName("dia_vencimento");
+        entidade.Property(x => x.DataFechamento)
+            .HasColumnName("data_fechamento")
+            .HasColumnType("date")
+            .IsRequired();
+
+        entidade.Property(x => x.DataVencimento)
+            .HasColumnName("data_vencimento")
+            .HasColumnType("date")
+            .IsRequired();
 
         entidade.Property(x => x.Ativo)
             .HasColumnName("ativo")
@@ -136,7 +144,11 @@ public static class MapeamentoPessoal
 
         ConfigurarAuditoria(entidade);
 
-        entidade.HasIndex(x => new { x.UsuarioId, x.Nome })
+        entidade.HasIndex(x => new
+        {
+            x.UsuarioId,
+            x.Nome
+        })
             .IsUnique()
             .HasDatabaseName("uq_cartao_pessoal_nome");
 
