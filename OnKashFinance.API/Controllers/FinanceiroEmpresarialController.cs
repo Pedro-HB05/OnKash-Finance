@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnKashFinance.API.DTOs;
+using OnKashFinance.API.Modelos;
 using OnKashFinance.API.Servicos;
 
 namespace OnKashFinance.API.Controllers;
@@ -138,6 +139,22 @@ public class FinanceiroEmpresarialController
     // =====================================================
     // LANÇAMENTOS
     // =====================================================
+
+    [HttpGet("lancamentos")]
+    public async Task<IActionResult> ListarLancamentos(
+        [FromQuery] DateOnly? dataInicial,
+        [FromQuery] DateOnly? dataFinal,
+        [FromQuery] TipoLancamentoEmpresarial? tipo,
+        [FromQuery] Guid? contaId,
+        [FromQuery] Guid? categoriaId,
+        [FromQuery] bool incluirCancelados = false)
+    {
+        var lancamentos = await _service.ListarLancamentosAsync(
+            dataInicial, dataFinal, tipo, contaId, categoriaId,
+            incluirCancelados);
+
+        return Ok(lancamentos);
+    }
 
     [HttpPost("lancamentos")]
     public async Task<IActionResult>

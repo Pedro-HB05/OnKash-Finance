@@ -3,11 +3,41 @@ using OnKashFinance.API.Autenticacao;
 using OnKashFinance.API.Dados;
 using OnKashFinance.API.DTOs;
 using OnKashFinance.API.Modelos;
+using System.Linq.Expressions;
 
 namespace OnKashFinance.API.Servicos;
 
 public class FinanceiroEmpresarialService
 {
+    private static readonly Expression<Func<
+        LancamentoEmpresarial,
+        LancamentoEmpresarialResposta>> SelecaoLancamento = x =>
+        new LancamentoEmpresarialResposta
+        {
+            Id = x.Id,
+            Tipo = x.Tipo,
+            ContaId = x.ContaId,
+            Conta = x.Conta.Nome,
+            ContaDestinoId = x.ContaDestinoId,
+            ContaDestino = x.ContaDestino != null
+                ? x.ContaDestino.Nome : null,
+            CategoriaId = x.CategoriaId,
+            Categoria = x.Categoria != null ? x.Categoria.Nome : null,
+            ClienteId = x.ClienteId,
+            Cliente = x.Cliente != null ? x.Cliente.NomeRazaoSocial : null,
+            FornecedorId = x.FornecedorId,
+            Fornecedor = x.Fornecedor != null
+                ? x.Fornecedor.NomeRazaoSocial : null,
+            ContaPagarId = x.ContaPagarId,
+            ContaReceberId = x.ContaReceberId,
+            Descricao = x.Descricao,
+            Valor = x.Valor,
+            Data = x.Data,
+            Observacao = x.Observacao,
+            Cancelado = x.Cancelado,
+            CriadoEm = x.CriadoEm
+        };
+
     private readonly OnKashDbContext _db;
     private readonly UsuarioAtualService _usuarioAtual;
 
@@ -665,7 +695,7 @@ public class FinanceiroEmpresarialService
     // LANÇAMENTOS
     // =========================================================
 
-    public async Task<LancamentoEmpresarial>
+    public async Task<LancamentoEmpresarialResposta>
         CriarLancamentoAsync(
             CriarLancamentoEmpresarialRequest request)
     {
@@ -728,8 +758,67 @@ public class FinanceiroEmpresarialService
 
         await _db.SaveChangesAsync();
 
-        return lancamento;
+        return await ObterLancamentoRespostaAsync(
+            empresaId,
+            lancamento.Id
+        );
     }
+
+    public async Task<List<LancamentoEmpresarialResposta>>
+        ListarLancamentosAsync(
+            DateOnly? dataInicial,
+            DateOnly? dataFinal,
+            TipoLancamentoEmpresarial? tipo,
+            Guid? contaId,
+            Guid? categoriaId,
+            bool incluirCancelados)
+    {
+        if (dataInicial.HasValue && dataFinal.HasValue &&
+            dataInicial.Value > dataFinal.Value)
+        {
+            throw new InvalidOperationException(
+                "A data inicial não pode ser maior que a data final.");
+        }
+
+        var empresaId = ObterEmpresa();
+
+        var consulta = _db.LancamentosEmpresariais
+            .AsNoTracking()
+            .Where(x => x.EmpresaId == empresaId);
+
+        if (!incluirCancelados)
+            consulta = consulta.Where(x => !x.Cancelado);
+        if (dataInicial.HasValue)
+            consulta = consulta.Where(x => x.Data >= dataInicial.Value);
+        if (dataFinal.HasValue)
+            consulta = consulta.Where(x => x.Data <= dataFinal.Value);
+        if (tipo.HasValue)
+            consulta = consulta.Where(x => x.Tipo == tipo.Value);
+        if (contaId.HasValue)
+            consulta = consulta.Where(x => x.ContaId == contaId.Value);
+        if (categoriaId.HasValue)
+            consulta = consulta.Where(x => x.CategoriaId == categoriaId.Value);
+
+        return await consulta
+            .OrderByDescending(x => x.Data)
+            .ThenByDescending(x => x.CriadoEm)
+            .Select(SelecaoLancamento)
+            .ToListAsync();
+    }
+
+    private async Task<LancamentoEmpresarialResposta>
+        ObterLancamentoRespostaAsync(Guid empresaId, Guid id)
+    {
+        var resposta = await _db.LancamentosEmpresariais
+            .AsNoTracking()
+            .Where(x => x.Id == id && x.EmpresaId == empresaId)
+            .Select(SelecaoLancamento)
+            .FirstOrDefaultAsync();
+
+        return resposta ?? throw new KeyNotFoundException(
+            "Lançamento não encontrado.");
+    }
+
 
     public async Task CancelarLancamentoAsync(
         Guid id)

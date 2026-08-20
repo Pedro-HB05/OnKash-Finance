@@ -117,13 +117,21 @@ public class LancamentoEmpresarialResposta
     public Guid Id { get; set; }
     public TipoLancamentoEmpresarial Tipo { get; set; }
     public Guid ContaId { get; set; }
+    public string Conta { get; set; } = string.Empty;
     public Guid? ContaDestinoId { get; set; }
+    public string? ContaDestino { get; set; }
     public Guid? CategoriaId { get; set; }
+    public string? Categoria { get; set; }
     public Guid? ClienteId { get; set; }
+    public string? Cliente { get; set; }
     public Guid? FornecedorId { get; set; }
+    public string? Fornecedor { get; set; }
+    public Guid? ContaPagarId { get; set; }
+    public Guid? ContaReceberId { get; set; }
     public string Descricao { get; set; } = string.Empty;
     public decimal Valor { get; set; }
     public DateOnly Data { get; set; }
     public string? Observacao { get; set; }
     public bool Cancelado { get; set; }
+    public DateTimeOffset CriadoEm { get; set; }
 }
