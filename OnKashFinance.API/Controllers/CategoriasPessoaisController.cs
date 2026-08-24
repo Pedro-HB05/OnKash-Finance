@@ -49,4 +49,11 @@ public class CategoriasPessoaisController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Excluir(Guid id)
+    {
+        await _service.ExcluirCategoriaAsync(id);
+        return NoContent();
+    }
 }

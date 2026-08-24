@@ -141,6 +141,23 @@ public class CartaoService
         await _db.SaveChangesAsync();
     }
 
+    public async Task ExcluirAsync(Guid id)
+    {
+        var usuarioId = ObterUsuario();
+        var cartao = await _db.CartoesPessoais.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == usuarioId);
+
+        if (cartao is null)
+            throw new KeyNotFoundException("Cartão não encontrado.");
+
+        var possuiHistorico = await _db.FaturasPessoais.AnyAsync(x => x.CartaoId == id) ||
+            await _db.ComprasCartaoPessoais.AnyAsync(x => x.CartaoId == id);
+        if (possuiHistorico)
+            throw new InvalidOperationException("Este cartão possui compras ou faturas vinculadas. Desative-o para preservar o histórico.");
+
+        _db.CartoesPessoais.Remove(cartao);
+        await _db.SaveChangesAsync();
+    }
+
     public async Task<CompraCartaoResposta> CriarCompraAsync(
         CriarCompraCartaoRequest request)
     {

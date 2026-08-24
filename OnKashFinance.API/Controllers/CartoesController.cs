@@ -46,6 +46,13 @@ public class CartoesController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Excluir(Guid id)
+    {
+        await _service.ExcluirAsync(id);
+        return NoContent();
+    }
+
     [HttpPost("compras")]
     public async Task<IActionResult> CriarCompra(
         CriarCompraCartaoRequest request)

@@ -138,6 +138,22 @@ public class PessoalService
         await _db.SaveChangesAsync();
     }
 
+    public async Task ExcluirContaAsync(Guid id)
+    {
+        var usuarioId = ObterUsuario();
+        var conta = await _db.ContasPessoais.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == usuarioId);
+
+        if (conta is null)
+            throw new KeyNotFoundException("Conta não encontrada.");
+
+        var possuiHistorico = await _db.LancamentosPessoais.AnyAsync(x => x.ContaId == id);
+        if (possuiHistorico)
+            throw new InvalidOperationException("Esta conta possui lançamentos vinculados. Desative-a para preservar o histórico.");
+
+        _db.ContasPessoais.Remove(conta);
+        await _db.SaveChangesAsync();
+    }
+
     // =========================================================
     // CATEGORIAS
     // =========================================================
@@ -223,6 +239,23 @@ public class PessoalService
         categoria.Tipo = request.Tipo;
         categoria.Ativo = request.Ativo;
 
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task ExcluirCategoriaAsync(Guid id)
+    {
+        var usuarioId = ObterUsuario();
+        var categoria = await _db.CategoriasPessoais.FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == usuarioId && !x.Padrao);
+
+        if (categoria is null)
+            throw new KeyNotFoundException("Categoria personalizada não encontrada.");
+
+        var possuiHistorico = await _db.LancamentosPessoais.AnyAsync(x => x.CategoriaId == id) ||
+            await _db.ComprasCartaoPessoais.AnyAsync(x => x.CategoriaId == id);
+        if (possuiHistorico)
+            throw new InvalidOperationException("Esta categoria possui movimentações vinculadas. Desative-a para preservar o histórico.");
+
+        _db.CategoriasPessoais.Remove(categoria);
         await _db.SaveChangesAsync();
     }
 
