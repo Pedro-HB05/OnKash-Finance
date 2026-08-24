@@ -9,6 +9,7 @@ using OnKashFinance.API.Erros;
 using OnKashFinance.API.Modelos;
 using OnKashFinance.API.OpenApi;
 using OnKashFinance.API.Servicos;
+using OnKashFinance.API.Seguranca;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -166,9 +167,18 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<PlanejamentoPessoalService>();
 builder.Services.AddScoped<InteligenciaFinanceiraService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<AssinaturaService>();
+builder.Services.AddScoped<PrivacidadeService>();
+builder.Services.AddHostedService<RetencaoDadosService>();
 
 builder.Services.AddRateLimiter(options =>
 {
+    options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 8, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
+    options.AddPolicy("cadastro", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
     options.AddPolicy("verificacao-email", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
@@ -286,6 +296,7 @@ builder.Services.AddAuthorization();
 // =========================================================
 
 var app = builder.Build();
+if (!app.Environment.IsDevelopment()) app.UseHsts();
 
 // =========================================================
 // TRATAMENTO GLOBAL DE ERROS
@@ -293,6 +304,7 @@ var app = builder.Build();
 
 app.UseMiddleware<
     TratamentoErrosMiddleware>();
+app.UseMiddleware<CabecalhosSegurancaMiddleware>();
 
 // =========================================================
 // SWAGGER - DESENVOLVIMENTO
@@ -342,7 +354,11 @@ app.UseCors("Frontend");
 
 app.UseAuthentication();
 
+app.UseMiddleware<PermissoesEmpresaMiddleware>();
+
 app.UseAuthorization();
+
+app.UseMiddleware<AuditoriaOperacoesMiddleware>();
 
 app.UseRateLimiter();
 

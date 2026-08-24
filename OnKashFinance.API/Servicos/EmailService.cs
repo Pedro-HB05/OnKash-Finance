@@ -23,14 +23,20 @@ public class EmailService
 
     public async Task<bool> EnviarCodigoVerificacaoAsync(string nome, string email, string codigo)
     {
-        var chaveBrevo = _configuracao["Email:BrevoApiKey"]?.Trim();
-        if (!string.IsNullOrWhiteSpace(chaveBrevo))
-            return await EnviarPelaBrevoAsync(nome, email, codigo, chaveBrevo);
-
-        return await EnviarPorSmtpAsync(nome, email, codigo);
+        return await EnviarMensagemTransacionalAsync(nome, email,
+            $"{codigo} é seu código de verificação OnKash", CriarHtml(nome, codigo));
     }
 
-    private async Task<bool> EnviarPelaBrevoAsync(string nome, string email, string codigo, string chaveApi)
+    public async Task<bool> EnviarMensagemTransacionalAsync(string nome, string email, string assunto, string html)
+    {
+        var chaveBrevo = _configuracao["Email:BrevoApiKey"]?.Trim();
+        if (!string.IsNullOrWhiteSpace(chaveBrevo))
+            return await EnviarPelaBrevoAsync(nome, email, assunto, html, chaveBrevo);
+
+        return await EnviarPorSmtpAsync(nome, email, assunto, html);
+    }
+
+    private async Task<bool> EnviarPelaBrevoAsync(string nome, string email, string assunto, string html, string chaveApi)
     {
         var remetente = _configuracao["Email:Remetente"]?.Trim();
         var nomeRemetente = _configuracao["Email:NomeRemetente"] ?? "OnKash Finance";
@@ -52,8 +58,8 @@ public class EmailService
                 {
                     sender = new { name = nomeRemetente, email = remetente },
                     to = new[] { new { email, name = nome } },
-                    subject = $"{codigo} é seu código de verificação OnKash",
-                    htmlContent = CriarHtml(nome, codigo)
+                    subject = assunto,
+                    htmlContent = html
                 });
 
             if (resposta.IsSuccessStatusCode)
@@ -73,7 +79,7 @@ public class EmailService
         }
     }
 
-    private async Task<bool> EnviarPorSmtpAsync(string nome, string email, string codigo)
+    private async Task<bool> EnviarPorSmtpAsync(string nome, string email, string assunto, string html)
     {
         var host = _configuracao["Email:SmtpHost"]?.Trim();
         var usuario = _configuracao["Email:Usuario"]?.Trim();
@@ -93,8 +99,8 @@ public class EmailService
             using var mensagem = new MailMessage
             {
                 From = new MailAddress(remetente, _configuracao["Email:NomeRemetente"] ?? "OnKash Finance"),
-                Subject = $"{codigo} é seu código de verificação OnKash", IsBodyHtml = true,
-                Body = CriarHtml(nome, codigo)
+                Subject = assunto, IsBodyHtml = true,
+                Body = html
             };
             mensagem.To.Add(email);
             await cliente.SendMailAsync(mensagem).WaitAsync(TimeSpan.FromSeconds(10));

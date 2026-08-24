@@ -14,6 +14,11 @@ public class OnKashDbContext : DbContext
     public DbSet<Empresa> Empresas => Set<Empresa>();
     public DbSet<EmpresaUsuario> EmpresaUsuarios => Set<EmpresaUsuario>();
     public DbSet<PermissaoEmpresa> PermissoesEmpresa => Set<PermissaoEmpresa>();
+    public DbSet<AssinaturaUsuario> AssinaturasUsuario => Set<AssinaturaUsuario>();
+    public DbSet<SolicitacaoUpgrade> SolicitacoesUpgrade => Set<SolicitacaoUpgrade>();
+    public DbSet<AceiteLegal> AceitesLegais => Set<AceiteLegal>();
+    public DbSet<SolicitacaoPrivacidade> SolicitacoesPrivacidade => Set<SolicitacaoPrivacidade>();
+    public DbSet<AuditoriaOperacao> AuditoriasOperacoes => Set<AuditoriaOperacao>();
 
     public DbSet<ContaPessoal> ContasPessoais => Set<ContaPessoal>();
     public DbSet<CategoriaPessoal> CategoriasPessoais => Set<CategoriaPessoal>();

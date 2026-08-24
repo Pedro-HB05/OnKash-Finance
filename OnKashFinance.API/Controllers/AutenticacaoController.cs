@@ -19,6 +19,7 @@ public class AutenticacaoController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("cadastro")]
     [HttpPost("cadastro")]
     public async Task<IActionResult> Cadastrar(
         CadastroRequest request)
@@ -30,6 +31,7 @@ public class AutenticacaoController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResposta>> Login(
         LoginRequest request)

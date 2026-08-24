@@ -9,6 +9,7 @@ public class CadastroRequest
     public string Senha { get; set; } = string.Empty;
     public TipoContaUsuario TipoConta { get; set; }
     public string? NomeEmpresa { get; set; }
+    public bool AceitouTermos { get; set; }
 }
 
 public class LoginRequest

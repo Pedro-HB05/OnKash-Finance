@@ -17,18 +17,21 @@ public class AutenticacaoService
     private readonly JwtService _jwtService;
     private readonly EmailService _emailService;
     private readonly string _chaveVerificacao;
+    private readonly IHttpContextAccessor _http;
 
     public AutenticacaoService(
         OnKashDbContext db,
         IPasswordHasher<Usuario> passwordHasher,
         JwtService jwtService,
         EmailService emailService,
-        IConfiguration configuracao)
+        IConfiguration configuracao,
+        IHttpContextAccessor http)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
         _emailService = emailService;
+        _http = http;
         _chaveVerificacao = configuracao["EmailVerification:HashKey"]
             ?? configuracao["Jwt:Key"]
             ?? throw new InvalidOperationException("Chave de verificação não configurada.");
@@ -45,9 +48,12 @@ public class AutenticacaoService
         if (string.IsNullOrWhiteSpace(request.Senha))
             throw new InvalidOperationException("A senha é obrigatória.");
 
-        if (request.Senha.Length < 6)
+        if (request.Senha.Length < 8)
             throw new InvalidOperationException(
-                "A senha deve possuir pelo menos 6 caracteres.");
+                "A senha deve possuir pelo menos 8 caracteres.");
+
+        if (!request.AceitouTermos)
+            throw new InvalidOperationException("É necessário ler e aceitar os Termos de Uso e a Política de Privacidade.");
 
         var email = request.Email
             .Trim()
@@ -77,6 +83,7 @@ public class AutenticacaoService
             var codigo = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
             var usuario = new Usuario
             {
+                Id = Guid.NewGuid(),
                 Nome = request.Nome.Trim(),
                 Email = email,
                 TipoConta = request.TipoConta,
@@ -92,6 +99,13 @@ public class AutenticacaoService
                     request.Senha);
 
             _db.Usuarios.Add(usuario);
+            _db.AceitesLegais.Add(PrivacidadeService.CriarAceite(usuario.Id, _http.HttpContext));
+            _db.AssinaturasUsuario.Add(new AssinaturaUsuario
+            {
+                Usuario = usuario,
+                Plano = "GRATUITO",
+                Status = "ATIVA"
+            });
 
             if (request.TipoConta == TipoContaUsuario.EMPRESARIAL)
             {
@@ -291,11 +305,13 @@ public class AutenticacaoService
 
         Guid? empresaId = null;
         PerfilEmpresa? perfil = null;
+        PermissaoEmpresa? permissoes = null;
 
         if (usuario.TipoConta == TipoContaUsuario.EMPRESARIAL)
         {
             var vinculo = await _db.EmpresaUsuarios
                 .AsNoTracking()
+                .Include(x => x.Permissoes)
                 .Where(x =>
                     x.UsuarioId == usuario.Id &&
                     x.Ativo &&
@@ -311,12 +327,14 @@ public class AutenticacaoService
 
             empresaId = vinculo.EmpresaId;
             perfil = vinculo.Perfil;
+            permissoes = vinculo.Permissoes;
         }
 
         var token = _jwtService.GerarToken(
             usuario,
             empresaId,
-            perfil);
+            perfil,
+            permissoes);
 
         return new LoginResposta
         {

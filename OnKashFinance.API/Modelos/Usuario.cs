@@ -38,4 +38,6 @@ public class Usuario
 
     public ICollection<LancamentoPessoal> LancamentosPessoais { get; set; }
         = new List<LancamentoPessoal>();
+
+    public AssinaturaUsuario? Assinatura { get; set; }
 }
