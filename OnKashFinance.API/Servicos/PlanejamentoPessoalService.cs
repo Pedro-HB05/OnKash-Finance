@@ -128,6 +128,12 @@ public class PlanejamentoPessoalService
             alertas.Add(new AlertaFinanceiroResposta { Tipo = "RECORRENCIA", Titulo = "Lançamento recorrente próximo", Descricao = $"{item.Descricao} em {item.ProximaExecucao:dd/MM}.", Severidade = "INFO", Link = "/pessoal/planejamento" });
         if (!await _db.ContasPessoais.AnyAsync(x => x.UsuarioId == usuarioId && x.Ativo))
             alertas.Add(new AlertaFinanceiroResposta { Tipo = "CONTA", Titulo = "Nenhuma conta ativa", Descricao = "Ative ou cadastre uma conta para registrar movimentações.", Severidade = "ATENCAO", Link = "/pessoal/contas" });
+        var contas = await _db.ContasPessoais.AsNoTracking().Where(x => x.UsuarioId == usuarioId && x.Ativo).ToListAsync();
+        foreach (var conta in contas)
+        {
+            var movimentacao = await _db.LancamentosPessoais.Where(x => x.UsuarioId == usuarioId && x.ContaId == conta.Id && !x.Cancelado && x.Data <= hoje).SumAsync(x => (decimal?)(x.Tipo == TipoLancamentoPessoal.ENTRADA ? x.Valor : -x.Valor)) ?? 0;
+            if (conta.SaldoInicial + movimentacao < 0) alertas.Add(new AlertaFinanceiroResposta { Tipo = "SALDO", Titulo = "Conta com saldo negativo", Descricao = $"{conta.Nome}: R$ {conta.SaldoInicial + movimentacao:N2}.", Severidade = "CRITICO", Link = "/pessoal/contas" });
+        }
         return alertas;
     }
 

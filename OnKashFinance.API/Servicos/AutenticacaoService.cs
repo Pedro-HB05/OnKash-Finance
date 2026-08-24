@@ -1,5 +1,7 @@
 ﻿using System.Net.Mail;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using OnKashFinance.API.Autenticacao;
 using OnKashFinance.API.Dados;
@@ -13,18 +15,26 @@ public class AutenticacaoService
     private readonly OnKashDbContext _db;
     private readonly IPasswordHasher<Usuario> _passwordHasher;
     private readonly JwtService _jwtService;
+    private readonly EmailService _emailService;
+    private readonly string _chaveVerificacao;
 
     public AutenticacaoService(
         OnKashDbContext db,
         IPasswordHasher<Usuario> passwordHasher,
-        JwtService jwtService)
+        JwtService jwtService,
+        EmailService emailService,
+        IConfiguration configuracao)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
+        _emailService = emailService;
+        _chaveVerificacao = configuracao["EmailVerification:HashKey"]
+            ?? configuracao["Jwt:Key"]
+            ?? throw new InvalidOperationException("Chave de verificação não configurada.");
     }
 
-    public async Task<Guid> CadastrarAsync(CadastroRequest request)
+    public async Task<CadastroResposta> CadastrarAsync(CadastroRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Nome))
             throw new InvalidOperationException("O nome é obrigatório.");
@@ -64,12 +74,16 @@ public class AutenticacaoService
 
         try
         {
+            var codigo = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
             var usuario = new Usuario
             {
                 Nome = request.Nome.Trim(),
                 Email = email,
                 TipoConta = request.TipoConta,
-                Ativo = true
+                Ativo = true,
+                EmailVerificado = false,
+                CodigoVerificacaoEmail = HashCodigo(codigo),
+                CodigoVerificacaoExpiraEm = DateTimeOffset.UtcNow.AddMinutes(10)
             };
 
             usuario.SenhaHash =
@@ -118,7 +132,24 @@ public class AutenticacaoService
             await _db.SaveChangesAsync();
             await transacao.CommitAsync();
 
-            return usuario.Id;
+            var enviado = await _emailService.EnviarCodigoVerificacaoAsync(
+                usuario.Nome, usuario.Email, codigo);
+
+            if (!enviado)
+            {
+                usuario.CodigoVerificacaoExpiraEm = DateTimeOffset.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+
+            return new CadastroResposta
+            {
+                UsuarioId = usuario.Id,
+                Email = usuario.Email,
+                EmailEnviado = enviado,
+                Mensagem = enviado
+                    ? "Enviamos um código de verificação para seu e-mail."
+                    : "Conta criada. Solicite um novo código para validar o e-mail."
+            };
         }
         catch
         {
@@ -127,6 +158,67 @@ public class AutenticacaoService
         }
     }
 
+
+    public async Task VerificarEmailAsync(VerificarEmailRequest request)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var codigo = new string(request.Codigo.Where(char.IsDigit).ToArray());
+        if (codigo.Length != 6)
+            throw new InvalidOperationException("Informe o código de seis dígitos.");
+
+        var usuario = await _db.Usuarios
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == email);
+
+        if (usuario is null || usuario.EmailVerificado ||
+            string.IsNullOrWhiteSpace(usuario.CodigoVerificacaoEmail))
+            throw new InvalidOperationException("Código inválido ou conta já verificada.");
+
+        if (!usuario.CodigoVerificacaoExpiraEm.HasValue ||
+            usuario.CodigoVerificacaoExpiraEm <= DateTimeOffset.UtcNow)
+            throw new InvalidOperationException("O código expirou. Solicite um novo código.");
+
+        var esperado = Encoding.UTF8.GetBytes(usuario.CodigoVerificacaoEmail);
+        var informado = Encoding.UTF8.GetBytes(HashCodigo(codigo));
+        if (!CryptographicOperations.FixedTimeEquals(esperado, informado))
+            throw new InvalidOperationException("Código de verificação inválido.");
+
+        usuario.EmailVerificado = true;
+        usuario.CodigoVerificacaoEmail = null;
+        usuario.CodigoVerificacaoExpiraEm = null;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task ReenviarCodigoAsync(ReenviarCodigoEmailRequest request)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var usuario = await _db.Usuarios
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == email);
+
+        // Resposta neutra evita revelar quais e-mails possuem conta.
+        if (usuario is null || usuario.EmailVerificado) return;
+
+        if (usuario.CodigoVerificacaoExpiraEm > DateTimeOffset.UtcNow.AddMinutes(9))
+            throw new InvalidOperationException("Aguarde um minuto antes de solicitar outro código.");
+
+        var codigo = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+        usuario.CodigoVerificacaoEmail = HashCodigo(codigo);
+        usuario.CodigoVerificacaoExpiraEm = DateTimeOffset.UtcNow.AddMinutes(10);
+        await _db.SaveChangesAsync();
+
+        if (!await _emailService.EnviarCodigoVerificacaoAsync(usuario.Nome, usuario.Email, codigo))
+        {
+            usuario.CodigoVerificacaoExpiraEm = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync();
+            throw new InvalidOperationException(
+                "Não foi possível enviar o e-mail agora. Tente novamente em instantes.");
+        }
+    }
+
+    private string HashCodigo(string codigo)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_chaveVerificacao));
+        return Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(codigo)))[..6];
+    }
 
     private static void ValidarEmail(string email)
     {
@@ -187,6 +279,14 @@ public class AutenticacaoService
         {
             throw new UnauthorizedAccessException(
                 "E-mail ou senha inválidos.");
+        }
+
+        // Contas antigas não possuíam código pendente e continuam acessando normalmente.
+        if (!usuario.EmailVerificado &&
+            !string.IsNullOrWhiteSpace(usuario.CodigoVerificacaoEmail))
+        {
+            throw new UnauthorizedAccessException(
+                "E-mail ainda não verificado. Confirme o código enviado antes de entrar.");
         }
 
         Guid? empresaId = null;

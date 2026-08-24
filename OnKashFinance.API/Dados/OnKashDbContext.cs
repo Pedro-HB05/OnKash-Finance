@@ -32,6 +32,8 @@ public class OnKashDbContext : DbContext
     public DbSet<ContaPagar> ContasPagar => Set<ContaPagar>();
     public DbSet<ContaReceber> ContasReceber => Set<ContaReceber>();
     public DbSet<LancamentoEmpresarial> LancamentosEmpresariais => Set<LancamentoEmpresarial>();
+    public DbSet<MovimentoImportado> MovimentosImportados => Set<MovimentoImportado>();
+    public DbSet<AnexoFinanceiro> AnexosFinanceiros => Set<AnexoFinanceiro>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,5 +43,6 @@ public class OnKashDbContext : DbContext
         MapeamentoPessoal.Configurar(modelBuilder);
         MapeamentoEmpresarial.Configurar(modelBuilder);
         MapeamentoPlanejamento.Configurar(modelBuilder);
+        MapeamentoInteligenciaFinanceira.Configurar(modelBuilder);
     }
 }

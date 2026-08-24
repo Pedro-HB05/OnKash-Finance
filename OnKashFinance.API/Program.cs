@@ -11,6 +11,7 @@ using OnKashFinance.API.OpenApi;
 using OnKashFinance.API.Servicos;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -162,6 +163,22 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     DashboardService>();
 builder.Services.AddScoped<PlanejamentoPessoalService>();
+builder.Services.AddScoped<InteligenciaFinanceiraService>();
+builder.Services.AddScoped<EmailService>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("verificacao-email", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 6,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 // =========================================================
 // CORS
@@ -325,6 +342,8 @@ app.UseCors("Frontend");
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.MapControllers();
 
