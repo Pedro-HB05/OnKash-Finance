@@ -14,6 +14,12 @@ public class Usuario
 
     public bool Ativo { get; set; } = true;
 
+    public bool EmailVerificado { get; set; } = false;
+
+    public string? CodigoVerificacaoEmail { get; set; }
+
+    public DateTimeOffset? CodigoVerificacaoExpiraEm { get; set; }
+
     public DateTimeOffset CriadoEm { get; set; }
 
     public DateTimeOffset AtualizadoEm { get; set; }

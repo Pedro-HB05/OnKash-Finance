@@ -22,6 +22,7 @@ import type {
   DashboardEmpresarial,
   DashboardPessoal,
 } from "@/tipos/api";
+
 import { moeda } from "@/utilitarios/formatadores";
 
 type Dados =
@@ -38,11 +39,13 @@ export type TipoPeriodoDashboard =
 
 type DashboardFinanceiroProps = {
   tipo: "pessoal" | "empresarial";
+
   dados: Dados;
 
   periodo: TipoPeriodoDashboard;
 
   dataInicial: string;
+
   dataFinal: string;
 
   alterarPeriodo: (
@@ -118,23 +121,21 @@ export function DashboardFinanceiro({
       tipo,
     );
 
-  const saldo = valorNumerico(
-    dados.saldo,
-  );
+  const saldo =
+    valorNumerico(dados.saldo);
 
-  const entradas = valorNumerico(
-    dados.entradas,
-  );
+  const entradas =
+    valorNumerico(dados.entradas);
 
-  const saidas = valorNumerico(
-    dados.saidas,
-  );
+  const saidas =
+    valorNumerico(dados.saidas);
 
-  const resultado = valorNumerico(
-    empresarial
-      ? dados.resultado
-      : dados.resultadoMes,
-  );
+  const resultado =
+    valorNumerico(
+      empresarial
+        ? dados.resultado
+        : dados.resultadoMes,
+    );
 
   const barras = [
     {
@@ -202,8 +203,7 @@ export function DashboardFinanceiro({
         </div>
       </header>
 
-      {periodo ===
-        "PERSONALIZADO" && (
+      {periodo === "PERSONALIZADO" && (
         <section
           className="filtro-periodo-personalizado"
           aria-label="Período personalizado"
@@ -244,7 +244,9 @@ export function DashboardFinanceiro({
       >
         <div>
           <span className="rotulo-card">
-            Saldo total
+            {periodo === "TODO"
+              ? "Saldo atual"
+              : "Saldo no fim do período"}
           </span>
 
           <strong>
@@ -253,8 +255,10 @@ export function DashboardFinanceiro({
 
           <p>
             <TrendingUp size={17} />
-            Valor disponível nas suas
-            contas
+
+            {periodo === "TODO"
+              ? "Valor disponível nas suas contas"
+              : "Saldo calculado até a data final"}
           </p>
         </div>
 
@@ -311,9 +315,7 @@ export function DashboardFinanceiro({
 
         <article className="indicador resultado">
           <span className="icone-indicador">
-            <CircleDollarSign
-              size={20}
-            />
+            <CircleDollarSign size={20} />
           </span>
 
           <div>
@@ -346,9 +348,7 @@ export function DashboardFinanceiro({
           <div className="titulo-painel">
             <div>
               <span className="sobre-titulo">
-                {nomePeriodo(
-                  periodo,
-                )}
+                {nomePeriodo(periodo)}
               </span>
 
               <h2>
@@ -393,12 +393,8 @@ export function DashboardFinanceiro({
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(
-                    valor,
-                  ) =>
-                    moeda(
-                      Number(valor),
-                    )
+                  tickFormatter={(valor) =>
+                    moeda(Number(valor))
                   }
                   tick={{
                     fill: "var(--texto2)",

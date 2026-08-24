@@ -19,31 +19,22 @@ public class DashboardService
         _usuarioAtual = usuarioAtual;
     }
 
-    public async Task<DashboardPessoalResposta>
-        ObterPessoalAsync()
+    public async Task<DashboardPessoalResposta> ObterPessoalAsync(
+        DateOnly? inicio = null,
+        DateOnly? fim = null)
     {
         if (!_usuarioAtual.EhPessoal())
+        {
             throw new UnauthorizedAccessException();
+        }
 
-        var usuarioId =
-            _usuarioAtual.ObterUsuarioId();
+        ValidarPeriodo(inicio, fim);
 
-        var hoje =
-            DateOnly.FromDateTime(
-                DateTime.Today
-            );
+        var usuarioId = _usuarioAtual.ObterUsuarioId();
 
-        var inicioMes =
-            new DateOnly(
-                hoje.Year,
-                hoje.Month,
-                1
-            );
+        var hoje = DateOnly.FromDateTime(DateTime.Today);
 
-        var fimMes =
-            inicioMes
-                .AddMonths(1)
-                .AddDays(-1);
+        var dataFinalSaldo = fim ?? hoje;
 
         var saldoInicial =
             await _db.ContasPessoais
@@ -54,98 +45,103 @@ public class DashboardService
                     (decimal?)x.SaldoInicial)
             ?? 0;
 
-        var entradasTotais =
-            await _db.LancamentosPessoais
+        var lancamentos =
+            _db.LancamentosPessoais
                 .Where(x =>
                     x.UsuarioId == usuarioId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoPessoal.ENTRADA)
+                    !x.Cancelado);
+
+        var movimentacaoAteDataFinal =
+            await lancamentos
+                .Where(x =>
+                    x.Data <= dataFinalSaldo)
+                .SumAsync(x =>
+                    (decimal?)
+                    (
+                        x.Tipo ==
+                        TipoLancamentoPessoal.ENTRADA
+                            ? x.Valor
+                            : -x.Valor
+                    ))
+            ?? 0;
+
+        var saldo =
+            saldoInicial +
+            movimentacaoAteDataFinal;
+
+        var entradasQuery =
+            lancamentos.Where(x =>
+                x.Tipo ==
+                TipoLancamentoPessoal.ENTRADA);
+
+        var saidasQuery =
+            lancamentos.Where(x =>
+                x.Tipo ==
+                TipoLancamentoPessoal.SAIDA);
+
+        if (inicio.HasValue)
+        {
+            entradasQuery =
+                entradasQuery.Where(x =>
+                    x.Data >= inicio.Value);
+
+            saidasQuery =
+                saidasQuery.Where(x =>
+                    x.Data >= inicio.Value);
+        }
+
+        if (fim.HasValue)
+        {
+            entradasQuery =
+                entradasQuery.Where(x =>
+                    x.Data <= fim.Value);
+
+            saidasQuery =
+                saidasQuery.Where(x =>
+                    x.Data <= fim.Value);
+        }
+
+        var entradas =
+            await entradasQuery
                 .SumAsync(x =>
                     (decimal?)x.Valor)
             ?? 0;
 
-        var saidasTotais =
-            await _db.LancamentosPessoais
-                .Where(x =>
-                    x.UsuarioId == usuarioId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoPessoal.SAIDA)
-                .SumAsync(x =>
-                    (decimal?)x.Valor)
-            ?? 0;
-
-        var entradasMes =
-            await _db.LancamentosPessoais
-                .Where(x =>
-                    x.UsuarioId == usuarioId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoPessoal.ENTRADA &&
-                    x.Data >= inicioMes &&
-                    x.Data <= fimMes)
-                .SumAsync(x =>
-                    (decimal?)x.Valor)
-            ?? 0;
-
-        var saidasMes =
-            await _db.LancamentosPessoais
-                .Where(x =>
-                    x.UsuarioId == usuarioId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoPessoal.SAIDA &&
-                    x.Data >= inicioMes &&
-                    x.Data <= fimMes)
+        var saidas =
+            await saidasQuery
                 .SumAsync(x =>
                     (decimal?)x.Valor)
             ?? 0;
 
         return new DashboardPessoalResposta
         {
-            Saldo =
-                saldoInicial +
-                entradasTotais -
-                saidasTotais,
-
-            Entradas =
-                entradasMes,
-
-            Saidas =
-                saidasMes,
-
-            ResultadoMes =
-                entradasMes -
-                saidasMes
+            Saldo = saldo,
+            Entradas = entradas,
+            Saidas = saidas,
+            ResultadoMes = entradas - saidas
         };
     }
 
-    public async Task<DashboardEmpresarialResposta>
-        ObterEmpresarialAsync()
+    public async Task<DashboardEmpresarialResposta> ObterEmpresarialAsync(
+        DateOnly? inicio = null,
+        DateOnly? fim = null)
     {
         if (!_usuarioAtual.EhEmpresarial())
+        {
             throw new UnauthorizedAccessException();
+        }
+
+        ValidarPeriodo(inicio, fim);
 
         var empresaId =
             _usuarioAtual.ExigirEmpresaId();
 
         var hoje =
             DateOnly.FromDateTime(
-                DateTime.Today
-            );
+                DateTime.Today);
 
-        var inicioMes =
-            new DateOnly(
-                hoje.Year,
-                hoje.Month,
-                1
-            );
-
-        var fimMes =
-            inicioMes
-                .AddMonths(1)
-                .AddDays(-1);
+        var dataFinalSaldo =
+            fim ?? hoje;
 
         var saldoInicial =
             await _db.ContasEmpresariais
@@ -156,64 +152,73 @@ public class DashboardService
                     (decimal?)x.SaldoInicial)
             ?? 0;
 
-        var receitasTotais =
-            await _db.LancamentosEmpresariais
+        var lancamentos =
+            _db.LancamentosEmpresariais
                 .Where(x =>
                     x.EmpresaId == empresaId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoEmpresarial.RECEITA)
+                    !x.Cancelado);
+
+        var movimentacaoAteDataFinal =
+            await lancamentos
+                .Where(x =>
+                    x.Data <= dataFinalSaldo)
+                .SumAsync(x =>
+                    (decimal?)
+                    (
+                        x.Tipo ==
+                        TipoLancamentoEmpresarial.RECEITA
+                            ? x.Valor
+                            : x.Tipo ==
+                              TipoLancamentoEmpresarial.DESPESA
+                                ? -x.Valor
+                                : 0
+                    ))
+            ?? 0;
+
+        var saldo =
+            saldoInicial +
+            movimentacaoAteDataFinal;
+
+        var entradasQuery =
+            lancamentos.Where(x =>
+                x.Tipo ==
+                TipoLancamentoEmpresarial.RECEITA);
+
+        var saidasQuery =
+            lancamentos.Where(x =>
+                x.Tipo ==
+                TipoLancamentoEmpresarial.DESPESA);
+
+        if (inicio.HasValue)
+        {
+            entradasQuery =
+                entradasQuery.Where(x =>
+                    x.Data >= inicio.Value);
+
+            saidasQuery =
+                saidasQuery.Where(x =>
+                    x.Data >= inicio.Value);
+        }
+
+        if (fim.HasValue)
+        {
+            entradasQuery =
+                entradasQuery.Where(x =>
+                    x.Data <= fim.Value);
+
+            saidasQuery =
+                saidasQuery.Where(x =>
+                    x.Data <= fim.Value);
+        }
+
+        var entradas =
+            await entradasQuery
                 .SumAsync(x =>
                     (decimal?)x.Valor)
             ?? 0;
 
-        var despesasTotais =
-            await _db.LancamentosEmpresariais
-                .Where(x =>
-                    x.EmpresaId == empresaId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoEmpresarial.DESPESA)
-                .SumAsync(x =>
-                    (decimal?)x.Valor)
-            ?? 0;
-
-        var transferenciasSaida =
-            await _db.LancamentosEmpresariais
-                .Where(x =>
-                    x.EmpresaId == empresaId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoEmpresarial.TRANSFERENCIA)
-                .SumAsync(x =>
-                    (decimal?)x.Valor)
-            ?? 0;
-
-        var transferenciasEntrada =
-            transferenciasSaida;
-
-        var entradasMes =
-            await _db.LancamentosEmpresariais
-                .Where(x =>
-                    x.EmpresaId == empresaId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoEmpresarial.RECEITA &&
-                    x.Data >= inicioMes &&
-                    x.Data <= fimMes)
-                .SumAsync(x =>
-                    (decimal?)x.Valor)
-            ?? 0;
-
-        var saidasMes =
-            await _db.LancamentosEmpresariais
-                .Where(x =>
-                    x.EmpresaId == empresaId &&
-                    !x.Cancelado &&
-                    x.Tipo ==
-                    TipoLancamentoEmpresarial.DESPESA &&
-                    x.Data >= inicioMes &&
-                    x.Data <= fimMes)
+        var saidas =
+            await saidasQuery
                 .SumAsync(x =>
                     (decimal?)x.Valor)
             ?? 0;
@@ -224,9 +229,9 @@ public class DashboardService
                     x.EmpresaId == empresaId &&
                     (
                         x.Status ==
-                        StatusContaPagar.PENDENTE ||
+                            StatusContaPagar.PENDENTE ||
                         x.Status ==
-                        StatusContaPagar.ATRASADO
+                            StatusContaPagar.ATRASADO
                     ))
                 .SumAsync(x =>
                     (decimal?)x.Valor)
@@ -238,9 +243,9 @@ public class DashboardService
                     x.EmpresaId == empresaId &&
                     (
                         x.Status ==
-                        StatusContaReceber.PENDENTE ||
+                            StatusContaReceber.PENDENTE ||
                         x.Status ==
-                        StatusContaReceber.ATRASADO
+                            StatusContaReceber.ATRASADO
                     ))
                 .SumAsync(x =>
                     (decimal?)x.Valor)
@@ -251,10 +256,8 @@ public class DashboardService
                 .Where(x =>
                     x.EmpresaId == empresaId &&
                     x.Vencimento < hoje &&
-                    x.Status !=
-                    StatusContaPagar.PAGO &&
-                    x.Status !=
-                    StatusContaPagar.CANCELADO)
+                    x.Status != StatusContaPagar.PAGO &&
+                    x.Status != StatusContaPagar.CANCELADO)
                 .SumAsync(x =>
                     (decimal?)x.Valor)
             ?? 0;
@@ -264,50 +267,39 @@ public class DashboardService
                 .Where(x =>
                     x.EmpresaId == empresaId &&
                     x.Vencimento < hoje &&
-                    x.Status !=
-                    StatusContaReceber.RECEBIDO &&
-                    x.Status !=
-                    StatusContaReceber.CANCELADO)
+                    x.Status != StatusContaReceber.RECEBIDO &&
+                    x.Status != StatusContaReceber.CANCELADO)
                 .SumAsync(x =>
                     (decimal?)x.Valor)
             ?? 0;
 
-        var saldo =
-            saldoInicial +
-            receitasTotais -
-            despesasTotais -
-            transferenciasSaida +
-            transferenciasEntrada;
-
         return new DashboardEmpresarialResposta
         {
             Saldo = saldo,
-
-            Entradas =
-                entradasMes,
-
-            Saidas =
-                saidasMes,
-
-            Resultado =
-                entradasMes -
-                saidasMes,
-
-            ContasAPagar =
-                contasPagar,
-
-            ContasAReceber =
-                contasReceber,
-
-            PagarVencido =
-                pagarVencido,
-
-            ReceberVencido =
-                receberVencido,
-
+            Entradas = entradas,
+            Saidas = saidas,
+            Resultado = entradas - saidas,
+            ContasAPagar = contasPagar,
+            ContasAReceber = contasReceber,
+            PagarVencido = pagarVencido,
+            ReceberVencido = receberVencido,
             ValoresVencidos =
                 pagarVencido +
                 receberVencido
         };
+    }
+
+    private static void ValidarPeriodo(
+        DateOnly? inicio,
+        DateOnly? fim)
+    {
+        if (
+            inicio.HasValue &&
+            fim.HasValue &&
+            inicio.Value > fim.Value)
+        {
+            throw new ArgumentException(
+                "A data inicial não pode ser maior que a data final.");
+        }
     }
 }

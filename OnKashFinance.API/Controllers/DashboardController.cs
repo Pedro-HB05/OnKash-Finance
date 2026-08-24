@@ -18,20 +18,27 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("pessoal")]
-    public async Task<IActionResult> Pessoal()
+    public async Task<IActionResult> Pessoal(
+        [FromQuery] DateOnly? inicio,
+        [FromQuery] DateOnly? fim)
     {
         var dashboard =
-            await _service.ObterPessoalAsync();
+            await _service.ObterPessoalAsync(
+                inicio,
+                fim);
 
         return Ok(dashboard);
     }
 
     [HttpGet("empresarial")]
-    public async Task<IActionResult> Empresarial()
+    public async Task<IActionResult> Empresarial(
+        [FromQuery] DateOnly? inicio,
+        [FromQuery] DateOnly? fim)
     {
         var dashboard =
-            await _service
-                .ObterEmpresarialAsync();
+            await _service.ObterEmpresarialAsync(
+                inicio,
+                fim);
 
         return Ok(dashboard);
     }

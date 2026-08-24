@@ -49,6 +49,19 @@ public static class MapeamentoGeral
             .HasColumnName("ativo")
             .HasDefaultValue(true);
 
+        entidade.Property(x => x.EmailVerificado)
+            .HasColumnName("email_verificado")
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        entidade.Property(x => x.CodigoVerificacaoEmail)
+            .HasColumnName("codigo_verificacao_email")
+            .HasMaxLength(6);
+
+        entidade.Property(x => x.CodigoVerificacaoExpiraEm)
+            .HasColumnName("codigo_verificacao_expira_em")
+            .HasColumnType("timestamp with time zone");
+
         entidade.Property(x => x.CriadoEm)
             .HasColumnName("criado_em")
             .HasColumnType("timestamp with time zone")
@@ -161,16 +174,35 @@ public static class MapeamentoGeral
         entidade.Property(x => x.EmpresaUsuarioId)
             .HasColumnName("empresa_usuario_id");
 
-        entidade.Property(x => x.Dashboard).HasColumnName("dashboard");
-        entidade.Property(x => x.Lancamentos).HasColumnName("lancamentos");
-        entidade.Property(x => x.Contas).HasColumnName("contas");
-        entidade.Property(x => x.Clientes).HasColumnName("clientes");
-        entidade.Property(x => x.Fornecedores).HasColumnName("fornecedores");
-        entidade.Property(x => x.ContasPagar).HasColumnName("contas_pagar");
-        entidade.Property(x => x.ContasReceber).HasColumnName("contas_receber");
-        entidade.Property(x => x.Categorias).HasColumnName("categorias");
-        entidade.Property(x => x.Relatorios).HasColumnName("relatorios");
-        entidade.Property(x => x.Usuarios).HasColumnName("usuarios");
+        entidade.Property(x => x.Dashboard)
+            .HasColumnName("dashboard");
+
+        entidade.Property(x => x.Lancamentos)
+            .HasColumnName("lancamentos");
+
+        entidade.Property(x => x.Contas)
+            .HasColumnName("contas");
+
+        entidade.Property(x => x.Clientes)
+            .HasColumnName("clientes");
+
+        entidade.Property(x => x.Fornecedores)
+            .HasColumnName("fornecedores");
+
+        entidade.Property(x => x.ContasPagar)
+            .HasColumnName("contas_pagar");
+
+        entidade.Property(x => x.ContasReceber)
+            .HasColumnName("contas_receber");
+
+        entidade.Property(x => x.Categorias)
+            .HasColumnName("categorias");
+
+        entidade.Property(x => x.Relatorios)
+            .HasColumnName("relatorios");
+
+        entidade.Property(x => x.Usuarios)
+            .HasColumnName("usuarios");
 
         entidade.Property(x => x.CriadoEm)
             .HasColumnName("criado_em")
@@ -187,7 +219,8 @@ public static class MapeamentoGeral
 
         entidade.HasOne(x => x.EmpresaUsuario)
             .WithOne(x => x.Permissoes)
-            .HasForeignKey<PermissaoEmpresa>(x => x.EmpresaUsuarioId)
+            .HasForeignKey<PermissaoEmpresa>(
+                x => x.EmpresaUsuarioId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
