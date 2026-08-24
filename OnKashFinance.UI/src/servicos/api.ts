@@ -64,6 +64,7 @@ export const cadastrar = (dados: {
   senha: string;
   tipoConta: "PESSOAL" | "EMPRESARIAL";
   nomeEmpresa?: string;
+  aceitouTermos: boolean;
 }) => requisicao<{ usuarioId: string; email: string; emailEnviado: boolean; mensagem: string }>("/api/cadastro", { method: "POST", body: JSON.stringify(dados) });
 export const verificarEmail = (email: string, codigo: string) =>
   requisicao<{ mensagem: string }>("/api/verificar-email", { method: "POST", body: JSON.stringify({ email, codigo }) });

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Bell, CalendarDays, ShieldCheck } from "lucide-react";
+import { Bell, CalendarDays, CircleHelp, ShieldCheck } from "lucide-react";
 import { MenuPerfil } from "@/componentes/MenuPerfil";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
 import { requisicao } from "@/servicos/api";
@@ -22,6 +22,9 @@ export function CabecalhoGlobal() {
     usuarios: "Usuários",
     planejamento: "Planejamento",
     inteligencia: "Inteligência financeira",
+    assinatura: "Plano e uso",
+    ajuda: "Central de Ajuda",
+    "meus-dados": "Privacidade e dados",
   };
   const pagina = nomes[segmento] ?? segmento.replaceAll("-", " ");
   const data = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long" }).format(new Date());
@@ -38,6 +41,7 @@ export function CabecalhoGlobal() {
       </div>
       <div className="acoes-topbar">
         <span className="sessao-segura"><ShieldCheck size={15} /> Sessão segura</span>
+        <Link className="botao-ajuda-topbar" href="/ajuda" aria-label="Abrir Central de Ajuda" title="Central de Ajuda"><CircleHelp size={18}/></Link>
         <div className="central-alertas">
           <button className="botao-alertas" aria-label={`Alertas financeiros: ${alertas.length}`} aria-expanded={abrirAlertas} onClick={() => setAbrirAlertas(v => !v)}><Bell size={18}/>{alertas.length > 0 && <span>{alertas.length}</span>}</button>
           {abrirAlertas && <div className="painel-alertas"><header><strong>Alertas financeiros</strong><small>{alertas.length} aviso(s)</small></header>{alertas.length === 0 ? <p>Está tudo em ordem por aqui.</p> : alertas.map((a, i) => <Link href={a.link ?? "#"} key={`${a.tipo}-${i}`} onClick={() => setAbrirAlertas(false)}><i className={a.severidade.toLowerCase()}/><span><strong>{a.titulo}</strong><small>{a.descricao}</small></span></Link>)}</div>}

@@ -11,6 +11,7 @@ export default function Cadastro() {
     [senha, setSenha] = useState(""),
     [confirmacao, setConfirmacao] = useState(""),
     [empresa, setEmpresa] = useState(""),
+    [aceitouTermos, setAceitouTermos] = useState(false),
     [erro, setErro] = useState(""),
     [sucesso, setSucesso] = useState(""),
     [enviando, setEnviando] = useState(false);
@@ -34,6 +35,7 @@ export default function Cadastro() {
         senha,
         tipoConta: tipo,
         nomeEmpresa: tipo === "EMPRESARIAL" ? empresa : undefined,
+        aceitouTermos,
       });
       setSucesso(resposta.mensagem);
       setTimeout(() => router.replace(`/verificar-email?email=${encodeURIComponent(resposta.email)}&enviado=${resposta.emailEnviado ? "1" : "0"}`), 500);
@@ -111,13 +113,15 @@ export default function Cadastro() {
         )}
         {erro && <p className="mensagem erro">{erro}</p>}
         {sucesso && <p className="mensagem sucesso">{sucesso}</p>}
-        <button className="botao botao-autenticacao" disabled={!tipo || enviando}>
+        {tipo && <label className="aceite-legal-cadastro"><input type="checkbox" checked={aceitouTermos} onChange={e => setAceitouTermos(e.target.checked)} required/><span>Li e concordo com os <Link href="/termos" target="_blank">Termos de Uso</Link> e a <Link href="/privacidade" target="_blank">Política de Privacidade</Link>.</span></label>}
+        <button className="botao botao-autenticacao" disabled={!tipo || !aceitouTermos || enviando}>
           <span>{enviando ? "Criando conta..." : "Criar minha conta"}</span>
           {!enviando && <ArrowRight size={19} />}
         </button>
         <p>
           Já possui uma conta? <Link href="/login">Entrar</Link>
         </p>
+        <p className="links-legais-auth"><Link href="/privacidade">Privacidade</Link><span>·</span><Link href="/termos">Termos de Uso</Link></p>
       </form>
       </section>
     </main>
@@ -137,7 +141,7 @@ function Campo({
   return (
     <label className="campo">
       {label}
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} required />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} minLength={type === "password" ? 8 : undefined} required />
     </label>
   );
 }

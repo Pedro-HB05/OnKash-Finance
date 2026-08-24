@@ -164,3 +164,14 @@ export interface ProjecaoCaixa { saldoAtual: number; saldoProjetado: number; pon
 export interface LinhaDre { categoria: string; valor: number; }
 export interface DreSimplificada { inicio: string; fim: string; receitaBruta: number; despesas: number; resultado: number; margem: number; receitasPorCategoria: LinhaDre[]; despesasPorCategoria: LinhaDre[]; }
 export interface AnexoFinanceiro { id: string; nomeArquivo: string; tipoConteudo: string; tamanho: number; criadoEm: string; }
+export interface LimiteUso { chave: string; nome: string; utilizado: number; limite?: number; unidade: string; }
+export interface PlanoOferta { codigo: string; nome: string; descricao: string; atual: boolean; disponivel: boolean; destaque: boolean; recursos: string[]; }
+export interface AssinaturaResumo {
+  plano: string; nomePlano: string; status: string; periodoAtualFim?: string;
+  uso: LimiteUso[]; planos: PlanoOferta[]; possuiSolicitacaoPendente: boolean;
+}
+export interface SolicitacaoPrivacidade { protocolo: string; tipo: string; status: string; detalhes?: string; criadoEm: string; concluidoEm?: string; }
+export interface PrivacidadeResumo {
+  controlador: string; marca: string; localizacao: string; canal: string; versaoAtual: string;
+  aceiteAtual: boolean; aceitoEm?: string; solicitacoes: SolicitacaoPrivacidade[];
+}

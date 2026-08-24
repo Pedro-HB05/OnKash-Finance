@@ -5,6 +5,7 @@ interface Contexto {
   sessao: Sessao | null;
   carregando: boolean;
   iniciar: (s: Sessao) => void;
+  atualizarSessao: (dados: Partial<Sessao>) => void;
   sair: () => void;
 }
 const ContextoAutenticacao = createContext<Contexto | undefined>(undefined);
@@ -72,8 +73,14 @@ export function ProvedorAutenticacao({ children }: { children: React.ReactNode }
     localStorage.setItem(chave, JSON.stringify(nova));
     setSessao(nova);
   };
+  const atualizarSessao = (dados: Partial<Sessao>) => setSessao(atual => {
+    if (!atual) return atual;
+    const nova = { ...atual, ...dados };
+    localStorage.setItem(chave, JSON.stringify(nova));
+    return nova;
+  });
   return (
-    <ContextoAutenticacao.Provider value={{ sessao, carregando, iniciar, sair }}>
+    <ContextoAutenticacao.Provider value={{ sessao, carregando, iniciar, atualizarSessao, sair }}>
       {children}
     </ContextoAutenticacao.Provider>
   );

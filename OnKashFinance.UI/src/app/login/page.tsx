@@ -97,6 +97,7 @@ export default function Login() {
         <p className="link-cadastro">
           Não tem conta? <Link href="/cadastro">Crie agora</Link>
         </p>
+        <p className="links-legais-auth"><Link href="/privacidade">Privacidade</Link><span>·</span><Link href="/termos">Termos de Uso</Link></p>
       </form>
       </section>
     </main>

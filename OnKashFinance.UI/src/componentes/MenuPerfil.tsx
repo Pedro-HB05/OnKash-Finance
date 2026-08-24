@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Settings, UserRound, LogOut, Sun, Moon } from "lucide-react";
+import { Settings, UserRound, LogOut, Sun, Moon, Crown, CircleHelp, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
 
@@ -67,6 +67,18 @@ export function MenuPerfil() {
           <Link href="/configuracoes" role="menuitem" onClick={() => setAberto(false)}>
             <Settings size={17} />
             Configurações
+          </Link>
+          <Link href="/assinatura" role="menuitem" onClick={() => setAberto(false)}>
+            <Crown size={17} />
+            Plano e uso
+          </Link>
+          <Link href="/ajuda" role="menuitem" onClick={() => setAberto(false)}>
+            <CircleHelp size={17} />
+            Central de Ajuda
+          </Link>
+          <Link href="/meus-dados" role="menuitem" onClick={() => setAberto(false)}>
+            <ShieldCheck size={17} />
+            Privacidade e dados
           </Link>
           <button role="menuitem" onClick={trocarTema}>
             {escuro ? <Sun size={17} /> : <Moon size={17} />}
