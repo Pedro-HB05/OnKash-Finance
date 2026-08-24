@@ -132,6 +132,7 @@ builder.Services.AddScoped<
 // =========================================================
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 
 // =========================================================
 // SERVIÇOS
