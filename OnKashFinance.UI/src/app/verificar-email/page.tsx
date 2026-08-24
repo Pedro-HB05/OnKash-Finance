@@ -1,0 +1,19 @@
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, CheckCircle2, MailCheck, RefreshCw, ShieldCheck } from "lucide-react";
+import { reenviarCodigoEmail, verificarEmail } from "@/servicos/api";
+
+export default function VerificarEmail() {
+  const [email, setEmail] = useState(""); const [codigo, setCodigo] = useState("");
+  const [erro, setErro] = useState(""); const [aviso, setAviso] = useState(""); const [sucesso, setSucesso] = useState(false); const [processando, setProcessando] = useState(false); const [reenviando, setReenviando] = useState(false);
+  const router = useRouter();
+  useEffect(() => { const parametros = new URLSearchParams(window.location.search); setEmail(parametros.get("email") ?? ""); if (parametros.get("enviado") === "0") setAviso("A conta foi criada, mas o primeiro envio falhou. Solicite um novo código abaixo."); }, []);
+  const validar = async (evento: React.FormEvent) => { evento.preventDefault(); setProcessando(true); setErro(""); try { await verificarEmail(email, codigo); setSucesso(true); setTimeout(() => router.replace("/login?motivo=email-verificado"), 1200); } catch (falha) { setErro(falha instanceof Error ? falha.message : "Não foi possível validar o código."); } finally { setProcessando(false); } };
+  const reenviar = async () => { if (!email) return; setReenviando(true); setErro(""); try { const resposta = await reenviarCodigoEmail(email); setAviso(resposta.mensagem); } catch (falha) { setErro(falha instanceof Error ? falha.message : "Não foi possível reenviar o código."); } finally { setReenviando(false); } };
+  return <main className="autenticacao">
+    <section className="autenticacao-apresentacao" aria-label="Verificação segura"><div className="marca marca-autenticacao">OnKash <span>Finance</span></div><div className="autenticacao-chamada"><span className="selo-autenticacao"><ShieldCheck size={16}/> Proteção da sua conta</span><h1>Confirme que este e-mail é realmente seu.</h1><p>Uma etapa rápida para manter seus dados financeiros protegidos desde o primeiro acesso.</p></div><p className="autenticacao-rodape">Código temporário e uso único</p></section>
+    <section className="autenticacao-conteudo"><form className="cartao-login verificacao-email" onSubmit={validar}><div className="marca marca-mobile">OnKash <span>Finance</span></div>{sucesso ? <div className="verificacao-concluida"><CheckCircle2 size={46}/><h2>E-mail confirmado</h2><p>Seu acesso está liberado. Redirecionando para o login...</p></div> : <><div className="cabecalho-autenticacao"><span className="icone-verificacao"><MailCheck size={24}/></span><span className="sobre-titulo">Verificação de e-mail</span><h2>Digite o código</h2><p>Enviamos seis números para o endereço informado.</p></div><label className="campo">E-mail<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required/></label><label className="campo campo-codigo">Código de verificação<input value={codigo} onChange={e => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" aria-label="Código de seis dígitos" required/></label>{erro && <p className="mensagem erro" role="alert">{erro}</p>}{aviso && !erro && <p className="mensagem aviso" role="status">{aviso}</p>}<button className="botao botao-autenticacao" disabled={processando || codigo.length !== 6}><span>{processando ? "Validando..." : "Confirmar e-mail"}</span>{!processando && <ArrowRight size={19}/>}</button><button className="reenviar-codigo" type="button" onClick={() => void reenviar()} disabled={reenviando || !email}><RefreshCw size={16}/>{reenviando ? "Reenviando..." : "Não recebi o código"}</button><p className="link-cadastro"><Link href="/login">Voltar para o login</Link></p></>}</form></section>
+  </main>;
+}

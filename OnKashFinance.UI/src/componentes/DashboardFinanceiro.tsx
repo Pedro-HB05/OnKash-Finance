@@ -8,6 +8,9 @@ import {
   CalendarClock,
   CircleDollarSign,
   Landmark,
+  AlertTriangle,
+  FileClock,
+  WalletCards,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -282,6 +285,14 @@ export function DashboardFinanceiro({
           </span>
         </div>
       </section>
+
+      {empresarial && (
+        <section className="indicadores-operacionais" aria-label="Compromissos financeiros">
+          <Link href="/empresarial/contas-a-pagar"><span><WalletCards size={19}/></span><div><small>A pagar</small><strong>{moeda(dados.contasAPagar)}</strong></div></Link>
+          <Link href="/empresarial/contas-a-receber"><span><FileClock size={19}/></span><div><small>A receber</small><strong>{moeda(dados.contasAReceber)}</strong></div></Link>
+          <Link className={dados.valoresVencidos > 0 ? "atencao" : ""} href="/empresarial/contas-a-pagar"><span><AlertTriangle size={19}/></span><div><small>Valores vencidos</small><strong>{moeda(dados.valoresVencidos)}</strong></div></Link>
+        </section>
+      )}
 
       <section
         className="indicadores-financeiros"

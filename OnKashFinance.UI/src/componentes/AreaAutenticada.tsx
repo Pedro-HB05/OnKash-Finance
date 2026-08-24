@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
 import { CabecalhoGlobal } from "@/componentes/CabecalhoGlobal";
-import { BarChart3, Building2, CreditCard, FileText, FolderTree, Gauge, Landmark, Menu as MenuIcon, ReceiptText, Tags, Target, UsersRound, UserRound, WalletCards, X } from "lucide-react";
+import { BarChart3, Building2, CreditCard, FileText, FolderTree, Gauge, Landmark, Menu as MenuIcon, ReceiptText, Sparkles, Tags, Target, UsersRound, UserRound, WalletCards, X } from "lucide-react";
 
 const pessoal = [
   { grupo: "Principal", itens: [{ rota: "visao-geral", nome: "Visão geral", icone: Gauge }] },
@@ -17,6 +17,7 @@ const pessoal = [
   ] },
   { grupo: "Organização", itens: [
     { rota: "planejamento", nome: "Planejamento", icone: Target },
+    { rota: "inteligencia", nome: "Inteligência", icone: Sparkles },
     { rota: "categorias", nome: "Categorias", icone: Tags },
     { rota: "relatorios", nome: "Relatórios", icone: BarChart3 },
   ] },
@@ -28,6 +29,7 @@ const empresarial = [
     { rota: "contas", nome: "Contas", icone: Landmark },
     { rota: "contas-a-pagar", nome: "Contas a pagar", icone: WalletCards },
     { rota: "contas-a-receber", nome: "Contas a receber", icone: FileText },
+    { rota: "inteligencia", nome: "Inteligência", icone: Sparkles },
   ] },
   { grupo: "Cadastros", itens: [
     { rota: "clientes", nome: "Clientes", icone: UserRound },

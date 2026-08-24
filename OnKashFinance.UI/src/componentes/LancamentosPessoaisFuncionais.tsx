@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { AreaAutenticada } from "@/componentes/AreaAutenticada";
 import { Badge, Campo, Modal } from "@/componentes/Base";
 import { ConfirmacaoAcao, MenuAcoes } from "@/componentes/MenuAcoes";
+import { AnexosLancamento } from "@/componentes/AnexosLancamento";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
 import { requisicao } from "@/servicos/api";
 import type {
@@ -130,6 +131,7 @@ export function LancamentosPessoaisFuncionais() {
     useState(false);
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<"TODOS" | TipoLancamento>("TODOS");
+  const [anexando, setAnexando] = useState<LancamentoPessoal | null>(null);
 
   const carregarDados = async () => {
     if (!sessao) {
@@ -659,9 +661,10 @@ export function LancamentosPessoaisFuncionais() {
                   </td>
 
                   <td data-label="Mais opções">
-                    {!lancamento.cancelado && (
-                      <MenuAcoes
+                    <MenuAcoes
                         acoes={[
+                          { rotulo: "Comprovantes", executar: () => setAnexando(lancamento) },
+                          ...(!lancamento.cancelado ? [
                           {
                             rotulo:
                               "Editar",
@@ -686,9 +689,9 @@ export function LancamentosPessoaisFuncionais() {
                                   lancamento,
                                 ),
                           },
+                          ] : []),
                         ]}
                       />
-                    )}
                   </td>
                 </tr>
               ),
@@ -1024,6 +1027,7 @@ export function LancamentosPessoaisFuncionais() {
           />
         </Modal>
       )}
+      {anexando && <AnexosLancamento tipo="pessoal" lancamentoId={anexando.id} descricao={anexando.descricao} fechar={() => setAnexando(null)}/>}
     </AreaAutenticada>
   );
 }

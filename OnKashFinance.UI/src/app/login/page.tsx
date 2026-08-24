@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { entrar } from "@/servicos/api";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
@@ -11,12 +11,22 @@ export default function Login() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState("");
+  const [precisaVerificar, setPrecisaVerificar] = useState(false);
   const { iniciar } = useAutenticacao();
   const router = useRouter();
+  useEffect(() => {
+    const motivo = new URLSearchParams(window.location.search).get("motivo");
+    if (motivo === "sessao-expirada")
+      setAviso("Sua sessão expirou por segurança. Entre novamente para continuar.");
+    if (motivo === "email-verificado")
+      setAviso("E-mail confirmado com sucesso. Você já pode entrar.");
+  }, []);
   const enviar = async (evento: React.FormEvent) => {
     evento.preventDefault();
     setEnviando(true);
     setErro("");
+    setPrecisaVerificar(false);
     try {
       const sessao = await entrar(email, senha);
       iniciar(sessao);
@@ -24,7 +34,9 @@ export default function Login() {
         sessao.tipoConta === "PESSOAL" ? "/pessoal/visao-geral" : "/empresarial/visao-geral",
       );
     } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : "Não foi possível entrar.");
+      const mensagem = falha instanceof Error ? falha.message : "Não foi possível entrar.";
+      setErro(mensagem);
+      setPrecisaVerificar(mensagem.toLowerCase().includes("não verificado"));
     } finally {
       setEnviando(false);
     }
@@ -77,6 +89,8 @@ export default function Login() {
             {erro}
           </p>
         )}
+        {aviso && !erro && <p className="mensagem aviso" role="status">{aviso}</p>}
+        {precisaVerificar && <Link className="link-verificacao" href={`/verificar-email?email=${encodeURIComponent(email)}`}>Validar meu e-mail agora</Link>}
         <button className="botao botao-autenticacao" disabled={enviando}>
           <span>{enviando ? "Entrando..." : "Entrar"}</span>{!enviando && <ArrowRight size={19} />}
         </button>

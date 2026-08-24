@@ -21,12 +21,14 @@ export function CabecalhoGlobal() {
     "contas-a-pagar": "Contas a pagar", "contas-a-receber": "Contas a receber",
     usuarios: "Usuários",
     planejamento: "Planejamento",
+    inteligencia: "Inteligência financeira",
   };
   const pagina = nomes[segmento] ?? segmento.replaceAll("-", " ");
   const data = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long" }).format(new Date());
   useEffect(() => {
-    if (sessao?.tipoConta !== "PESSOAL") return;
-    requisicao<AlertaFinanceiro[]>("/api/pessoal/planejamento/alertas", {}, sessao.token).then(setAlertas).catch(() => setAlertas([]));
+    if (!sessao) return;
+    const rota = sessao.tipoConta === "PESSOAL" ? "/api/pessoal/planejamento/alertas" : "/api/empresarial/inteligencia/alertas";
+    requisicao<AlertaFinanceiro[]>(rota, {}, sessao.token).then(setAlertas).catch(() => setAlertas([]));
   }, [sessao]);
   return (
     <header className="topbar-global">

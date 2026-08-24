@@ -28,17 +28,17 @@ export default function Cadastro() {
     }
     setEnviando(true);
     try {
-      await cadastrar({
+      const resposta = await cadastrar({
         nome,
         email,
         senha,
         tipoConta: tipo,
         nomeEmpresa: tipo === "EMPRESARIAL" ? empresa : undefined,
       });
-      setSucesso("Conta criada com sucesso.");
-      setTimeout(() => router.replace("/login"), 700);
-    } catch {
-      setErro("Não foi possível criar a conta. Verifique os dados informados.");
+      setSucesso(resposta.mensagem);
+      setTimeout(() => router.replace(`/verificar-email?email=${encodeURIComponent(resposta.email)}&enviado=${resposta.emailEnviado ? "1" : "0"}`), 500);
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível criar a conta. Verifique os dados informados.");
     } finally {
       setEnviando(false);
     }

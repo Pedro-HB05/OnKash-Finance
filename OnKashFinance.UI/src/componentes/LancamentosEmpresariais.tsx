@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AreaAutenticada } from "@/componentes/AreaAutenticada";
 import { Badge, Campo, Modal } from "@/componentes/Base";
 import { ConfirmacaoAcao, MenuAcoes } from "@/componentes/MenuAcoes";
+import { AnexosLancamento } from "@/componentes/AnexosLancamento";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
 import { requisicao } from "@/servicos/api";
 import type { Categoria, Conta, LancamentoEmpresarial, PessoaCadastro } from "@/tipos/api";
@@ -23,6 +24,8 @@ export function LancamentosEmpresariais() {
   const [salvando, setSalvando] = useState(false);
   const [cancelando, setCancelando] = useState<LancamentoEmpresarial | null>(null);
   const [processandoCancelamento, setProcessandoCancelamento] = useState(false);
+  const [anexando, setAnexando] = useState<LancamentoEmpresarial | null>(null);
+  const [editando, setEditando] = useState<LancamentoEmpresarial | null>(null);
   const carregar = async () => {
     if (!sessao) return;
     setCarregando(true);
@@ -58,9 +61,9 @@ export function LancamentosEmpresariais() {
     setSalvando(true);
     try {
       await requisicao(
-        "/api/empresarial/lancamentos",
+        editando ? `/api/empresarial/lancamentos/${editando.id}` : "/api/empresarial/lancamentos",
         {
-          method: "POST",
+          method: editando ? "PUT" : "POST",
           body: JSON.stringify({
             tipo: t,
             contaId: f.get("contaId"),
@@ -77,6 +80,7 @@ export function LancamentosEmpresariais() {
         sessao.token,
       );
       setAbrir(false);
+      setEditando(null);
       await carregar();
     } catch {
       setErro("Não foi possível salvar o lançamento.");
@@ -109,7 +113,7 @@ export function LancamentosEmpresariais() {
           <h1>Lançamentos</h1>
           <p>Registre e acompanhe as movimentações da empresa.</p>
         </div>
-        <button className="botao" onClick={() => setAbrir(true)}>
+        <button className="botao" onClick={() => { setEditando(null); setAbrir(true); }}>
           + Novo lançamento
         </button>
       </header>
@@ -163,17 +167,18 @@ export function LancamentosEmpresariais() {
                     <Badge valor={item.cancelado ? "CANCELADO" : "Ativo"} />
                   </td>
                   <td data-label="Mais opções">
-                    {!item.cancelado && (
-                      <MenuAcoes
+                    <MenuAcoes
                         acoes={[
+                          { rotulo: "Comprovantes", executar: () => setAnexando(item) },
+                          ...(!item.cancelado ? [
+                          { rotulo: "Editar e categorizar", executar: () => { setEditando(item); setAbrir(true); } },
                           {
                             rotulo: "Cancelar",
                             perigosa: true,
                             executar: () => setCancelando(item),
-                          },
+                          }] : []),
                         ]}
                       />
-                    )}
                   </td>
                 </tr>
               ))}
@@ -182,11 +187,11 @@ export function LancamentosEmpresariais() {
         </div>
       )}
       {abrir && (
-        <Modal titulo="Novo lançamento" fechar={() => setAbrir(false)}>
+        <Modal titulo={editando ? "Editar lançamento" : "Novo lançamento"} fechar={() => { setAbrir(false); setEditando(null); }}>
           <form className="formulario" onSubmit={enviar}>
             <label className="campo">
               Tipo
-              <select name="tipo" required>
+              <select name="tipo" required defaultValue={editando?.tipo ?? "RECEITA"}>
                 <option value="RECEITA">Receita</option>
                 <option value="DESPESA">Despesa</option>
                 <option value="TRANSFERENCIA">Transferência</option>
@@ -194,7 +199,7 @@ export function LancamentosEmpresariais() {
             </label>
             <label className="campo">
               Conta
-              <select name="contaId" required>
+              <select name="contaId" required defaultValue={editando?.contaId ?? ""}>
                 <option value="">Selecione</option>
                 {contas
                   .filter((conta) => conta.ativo)
@@ -207,7 +212,7 @@ export function LancamentosEmpresariais() {
             </label>
             <label className="campo">
               Conta de destino
-              <select name="contaDestinoId">
+              <select name="contaDestinoId" defaultValue={editando?.contaDestinoId ?? ""}>
                 <option value="">Não se aplica</option>
                 {contas
                   .filter((conta) => conta.ativo)
@@ -220,7 +225,7 @@ export function LancamentosEmpresariais() {
             </label>
             <label className="campo">
               Categoria
-              <select name="categoriaId">
+              <select name="categoriaId" defaultValue={editando?.categoriaId ?? ""}>
                 <option value="">Não se aplica</option>
                 {cats
                   .filter((categoria) => categoria.ativo)
@@ -233,7 +238,7 @@ export function LancamentosEmpresariais() {
             </label>
             <label className="campo">
               Cliente
-              <select name="clienteId">
+              <select name="clienteId" defaultValue={editando?.clienteId ?? ""}>
                 <option value="">Não se aplica</option>
                 {clientes
                   .filter((cliente) => cliente.ativo)
@@ -246,7 +251,7 @@ export function LancamentosEmpresariais() {
             </label>
             <label className="campo">
               Fornecedor
-              <select name="fornecedorId">
+              <select name="fornecedorId" defaultValue={editando?.fornecedorId ?? ""}>
                 <option value="">Não se aplica</option>
                 {forns
                   .filter((fornecedor) => fornecedor.ativo)
@@ -257,12 +262,12 @@ export function LancamentosEmpresariais() {
                   ))}
               </select>
             </label>
-            <Campo label="Descrição" name="descricao" required />
-            <Campo label="Valor" name="valor" type="number" min="0.01" step="0.01" required />
-            <Campo label="Data" name="data" type="date" required />
-            <Campo label="Observação" name="observacao" />
+            <Campo label="Descrição" name="descricao" defaultValue={editando?.descricao ?? ""} required />
+            <Campo label="Valor" name="valor" type="number" min="0.01" step="0.01" defaultValue={editando?.valor} required />
+            <Campo label="Data" name="data" type="date" defaultValue={editando?.data ?? ""} required />
+            <Campo label="Observação" name="observacao" defaultValue={editando?.observacao ?? ""} />
             <button className="botao" disabled={salvando}>
-              {salvando ? "Salvando..." : "Salvar lançamento"}
+              {salvando ? "Salvando..." : editando ? "Salvar alterações" : "Salvar lançamento"}
             </button>
           </form>
         </Modal>
@@ -278,6 +283,7 @@ export function LancamentosEmpresariais() {
           />
         </Modal>
       )}
+      {anexando && <AnexosLancamento tipo="empresarial" lancamentoId={anexando.id} descricao={anexando.descricao} fechar={() => setAnexando(null)}/>}
     </AreaAutenticada>
   );
 }

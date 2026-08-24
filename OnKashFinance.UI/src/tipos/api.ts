@@ -157,3 +157,10 @@ export interface RecorrenciaPessoal {
 export interface AlertaFinanceiro {
   tipo: string; titulo: string; descricao: string; severidade: "INFO" | "ATENCAO" | "CRITICO"; link?: string;
 }
+export interface MovimentoImportacao { data: string; descricao: string; valor: number; }
+export interface ResultadoImportacao { importados: number; conciliados: number; duplicados: number; }
+export interface PontoProjecao { data: string; entradas: number; saidas: number; saldoProjetado: number; }
+export interface ProjecaoCaixa { saldoAtual: number; saldoProjetado: number; pontos: PontoProjecao[]; }
+export interface LinhaDre { categoria: string; valor: number; }
+export interface DreSimplificada { inicio: string; fim: string; receitaBruta: number; despesas: number; resultado: number; margem: number; receitasPorCategoria: LinhaDre[]; despesasPorCategoria: LinhaDre[]; }
+export interface AnexoFinanceiro { id: string; nomeArquivo: string; tipoConteudo: string; tamanho: number; criadoEm: string; }
