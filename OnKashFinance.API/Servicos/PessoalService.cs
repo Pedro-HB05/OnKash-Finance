@@ -146,10 +146,11 @@ public class PessoalService
         if (conta is null)
             throw new KeyNotFoundException("Conta não encontrada.");
 
-        var possuiHistorico = await _db.LancamentosPessoais.AnyAsync(x => x.ContaId == id);
-        if (possuiHistorico)
-            throw new InvalidOperationException("Esta conta possui lançamentos vinculados. Desative-a para preservar o histórico.");
+        if (conta.Ativo)
+            throw new InvalidOperationException("Desative a conta antes de excluí-la.");
 
+        var lancamentos = await _db.LancamentosPessoais.Where(x => x.ContaId == id).ToListAsync();
+        _db.LancamentosPessoais.RemoveRange(lancamentos);
         _db.ContasPessoais.Remove(conta);
         await _db.SaveChangesAsync();
     }
@@ -250,11 +251,13 @@ public class PessoalService
         if (categoria is null)
             throw new KeyNotFoundException("Categoria personalizada não encontrada.");
 
-        var possuiHistorico = await _db.LancamentosPessoais.AnyAsync(x => x.CategoriaId == id) ||
-            await _db.ComprasCartaoPessoais.AnyAsync(x => x.CategoriaId == id);
-        if (possuiHistorico)
-            throw new InvalidOperationException("Esta categoria possui movimentações vinculadas. Desative-a para preservar o histórico.");
+        if (categoria.Ativo)
+            throw new InvalidOperationException("Desative a categoria antes de excluí-la.");
 
+        var lancamentos = await _db.LancamentosPessoais.Where(x => x.CategoriaId == id).ToListAsync();
+        var compras = await _db.ComprasCartaoPessoais.Where(x => x.CategoriaId == id).ToListAsync();
+        _db.LancamentosPessoais.RemoveRange(lancamentos);
+        _db.ComprasCartaoPessoais.RemoveRange(compras);
         _db.CategoriasPessoais.Remove(categoria);
         await _db.SaveChangesAsync();
     }

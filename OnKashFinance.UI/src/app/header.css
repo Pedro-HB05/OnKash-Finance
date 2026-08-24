@@ -1,11 +1,19 @@
 .topbar-global {
-  background: var(--fundo);
+  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--fundo) 88%, transparent);
   margin: 0 -56px 28px;
-  padding: 16px 56px 14px;
+  padding: 13px 56px;
   position: sticky;
   top: 0;
   z-index: 15;
 }
+.contexto-topbar,
+.acoes-topbar { align-items: center; display: flex; gap: 14px; }
+.pagina-topbar { color: var(--texto); font-size: 14px; font-weight: 850; text-transform: capitalize; }
+.data-topbar { align-items: center; color: var(--texto2); display: inline-flex; font-size: 13px; gap: 6px; text-transform: capitalize; }
+.sessao-segura { align-items: center; background: var(--ok); border-radius: 99px; color: var(--oktxt); display: inline-flex; font-size: 12px; font-weight: 800; gap: 5px; padding: 6px 10px; }
+.saudacao-topbar { color: var(--texto2); font-size: 13px; }
+.saudacao-topbar strong { color: var(--texto); }
 .menu {
   padding-bottom: 30px;
 }
@@ -17,4 +25,7 @@
     margin: 0 -16px 22px;
     padding: 14px 16px;
   }
+  .data-topbar,
+  .sessao-segura,
+  .saudacao-topbar { display: none; }
 }

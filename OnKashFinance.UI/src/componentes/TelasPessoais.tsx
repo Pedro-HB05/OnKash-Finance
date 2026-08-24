@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 
 import { AreaAutenticada } from "@/componentes/AreaAutenticada";
 import { Badge, Campo, Modal } from "@/componentes/Base";
@@ -35,6 +36,9 @@ const configuracao = {
   conta: {
     rota: "/api/pessoal/contas",
     titulo: "Contas",
+    singular: "conta",
+    descricao: "Acompanhe onde seu dinheiro está e mantenha os saldos organizados.",
+    vazio: "Cadastre sua primeira conta para começar a registrar entradas e saídas.",
     colunas: [
       "Nome",
       "Tipo",
@@ -46,6 +50,9 @@ const configuracao = {
   cartao: {
     rota: "/api/pessoal/cartoes",
     titulo: "Cartões",
+    singular: "cartão",
+    descricao: "Organize limites, vencimentos e compras dos seus cartões.",
+    vazio: "Cadastre um cartão para acompanhar compras e faturas.",
     colunas: [
       "Nome",
       "Instituição",
@@ -59,6 +66,9 @@ const configuracao = {
   categoria: {
     rota: "/api/pessoal/categorias",
     titulo: "Categorias",
+    singular: "categoria",
+    descricao: "Classifique suas entradas e saídas para entender melhor seus gastos.",
+    vazio: "Crie categorias personalizadas para organizar seus lançamentos.",
     colunas: [
       "Nome",
       "Tipo",
@@ -412,10 +422,12 @@ function CadastroPessoal({
   const [editando, setEditando] =
     useState<Cadastro | null>(null);
 
-  const [
-    desativando,
-    setDesativando,
-  ] = useState<Cadastro | null>(null);
+  const [alterandoStatus, setAlterandoStatus] = useState<Cadastro | null>(null);
+  const [excluindo, setExcluindo] = useState<Cadastro | null>(null);
+  const [processando, setProcessando] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+  const [busca, setBusca] = useState("");
+  const [situacao, setSituacao] = useState<"TODOS" | "ATIVOS" | "INATIVOS">("TODOS");
 
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] =
@@ -444,6 +456,8 @@ function CadastroPessoal({
           "Não foi possível carregar os registros.",
         ),
       );
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -489,50 +503,28 @@ function CadastroPessoal({
     }
   };
 
-  const desativar = async () => {
-    if (!sessao || !desativando) {
-      return;
-    }
-
-    const item = desativando;
-
-    let dados: Record<string, unknown>;
-
+  const dadosComStatus = (item: Cadastro, ativo: boolean) => {
     if (tipo === "conta") {
       const conta = item as Conta;
-
-      dados = {
-        nome: conta.nome,
-        tipo: conta.tipo,
-        ativo: false,
-      };
-    } else if (tipo === "categoria") {
-      const categoria =
-        item as Categoria;
-
-      dados = {
-        nome: categoria.nome,
-        tipo: categoria.tipo,
-        ativo: false,
-      };
-    } else {
-      const cartao =
-        item as CartaoComDatas;
-
-      dados = {
-        nome: cartao.nome,
-        instituicao:
-          cartao.instituicao,
-        limite: cartao.limite,
-        dataFechamento:
-          cartao.dataFechamento,
-        dataVencimento:
-          cartao.dataVencimento,
-        ativo: false,
-      };
+      return { nome: conta.nome, tipo: conta.tipo, ativo };
     }
+    if (tipo === "categoria") {
+      const categoria = item as Categoria;
+      return { nome: categoria.nome, tipo: categoria.tipo, ativo };
+    }
+    const cartao = item as CartaoComDatas;
+    return { nome: cartao.nome, instituicao: cartao.instituicao, limite: cartao.limite, dataFechamento: cartao.dataFechamento, dataVencimento: cartao.dataVencimento, ativo };
+  };
+
+  const alterarSituacao = async () => {
+    if (!sessao || !alterandoStatus) {
+      return;
+    }
+    const item = alterandoStatus;
+    const novoStatus = !item.ativo;
 
     try {
+      setProcessando(true);
       setErro("");
       setSucesso("");
 
@@ -540,15 +532,15 @@ function CadastroPessoal({
         `${info.rota}/${item.id}`,
         {
           method: "PUT",
-          body: JSON.stringify(dados),
+          body: JSON.stringify(dadosComStatus(item, novoStatus)),
         },
         sessao.token,
       );
 
-      setDesativando(null);
+      setAlterandoStatus(null);
 
       setSucesso(
-        "Registro desativado com sucesso.",
+        `Registro ${novoStatus ? "ativado" : "desativado"} com sucesso.`,
       );
 
       await carregar();
@@ -556,9 +548,27 @@ function CadastroPessoal({
       setErro(
         mensagemErro(
           falha,
-          "Não foi possível desativar o registro.",
+          `Não foi possível ${novoStatus ? "ativar" : "desativar"} o registro.`,
         ),
       );
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const excluir = async () => {
+    if (!sessao || !excluindo) return;
+    try {
+      setProcessando(true);
+      setErro("");
+      await requisicao(`${info.rota}/${excluindo.id}`, { method: "DELETE" }, sessao.token);
+      setExcluindo(null);
+      setSucesso("Registro excluído com sucesso.");
+      await carregar();
+    } catch (falha) {
+      setErro(mensagemErro(falha, "Não foi possível excluir o registro."));
+    } finally {
+      setProcessando(false);
     }
   };
 
@@ -616,16 +626,19 @@ function CadastroPessoal({
     return <Badge valor={item.ativo} />;
   };
 
+  const itensFiltrados = itens.filter((item) => {
+    const correspondeBusca = JSON.stringify(item).toLowerCase().includes(busca.trim().toLowerCase());
+    const correspondeSituacao = situacao === "TODOS" || (situacao === "ATIVOS" ? item.ativo : !item.ativo);
+    return correspondeBusca && correspondeSituacao;
+  });
+
   return (
     <AreaAutenticada tipo="pessoal">
       <header className="cabecalho">
         <div>
           <h1>{info.titulo}</h1>
 
-          <p>
-            Gerencie seus registros
-            financeiros.
-          </p>
+          <p>{info.descricao}</p>
         </div>
 
         <button
@@ -636,7 +649,7 @@ function CadastroPessoal({
             setAbrirCadastro(true);
           }}
         >
-          + Novo cadastro
+          + Nova {info.singular}
         </button>
       </header>
 
@@ -652,7 +665,14 @@ function CadastroPessoal({
         </p>
       )}
 
-      <div className="tabela">
+      {itens.length > 0 && <div className="barra-filtros"><label><Search size={17}/><input value={busca} onChange={e => setBusca(e.target.value)} placeholder={`Buscar ${info.titulo.toLowerCase()}...`} aria-label={`Buscar ${info.titulo.toLowerCase()}`}/></label><select value={situacao} onChange={e => setSituacao(e.target.value as typeof situacao)} aria-label="Filtrar por situação"><option value="TODOS">Todas as situações</option><option value="ATIVOS">Ativos</option><option value="INATIVOS">Inativos</option></select><span>{itensFiltrados.length} resultado(s)</span></div>}
+      {carregando ? <p className="estado">Carregando informações...</p> : itens.length === 0 ? (
+        <div className="estado-vazio">
+          <h2>Nenhuma {info.singular} cadastrada</h2>
+          <p>{info.vazio}</p>
+          <button className="botao" onClick={() => setAbrirCadastro(true)}>Cadastrar {info.singular}</button>
+        </div>
+      ) : <div className="tabela">
         <table>
           <thead>
             <tr>
@@ -669,7 +689,7 @@ function CadastroPessoal({
           </thead>
 
           <tbody>
-            {itens.map((item) => (
+            {itensFiltrados.map((item) => (
               <tr key={item.id}>
                 {info.colunas.map(
                   (coluna) => (
@@ -705,16 +725,20 @@ function CadastroPessoal({
                         .padrao
                         ? [
                             {
-                              rotulo:
-                                "Desativar",
+                              rotulo: item.ativo ? "Desativar" : "Ativar",
                               perigosa:
-                                true,
+                                item.ativo,
                               executar:
                                 () =>
-                                  setDesativando(
+                                  setAlterandoStatus(
                                     item,
                                   ),
                             },
+                            ...(!item.ativo ? [{
+                              rotulo: "Excluir",
+                              perigosa: true,
+                              executar: () => setExcluindo(item),
+                            }] : []),
                           ]
                         : []),
                     ]}
@@ -722,9 +746,10 @@ function CadastroPessoal({
                 </td>
               </tr>
             ))}
+            {itensFiltrados.length === 0 && <tr><td colSpan={info.colunas.length + 1}><div className="resultado-vazio">Nenhum registro corresponde aos filtros.</div></td></tr>}
           </tbody>
         </table>
-      </div>
+      </div>}
 
       {abrirCadastro && (
         <Modal
@@ -795,22 +820,35 @@ function CadastroPessoal({
         </Modal>
       )}
 
-      {desativando && (
+      {alterandoStatus && (
         <Modal
-          titulo="Desativar registro"
+          titulo={`${alterandoStatus.ativo ? "Desativar" : "Ativar"} registro`}
           fechar={() =>
-            setDesativando(null)
+            setAlterandoStatus(null)
           }
         >
           <ConfirmacaoAcao
-            descricao="O registro será desativado e o histórico será preservado."
-            textoConfirmar="Desativar"
+            descricao={alterandoStatus.ativo ? "O registro será desativado e o histórico será preservado." : "O registro voltará a aparecer nas opções disponíveis para novos lançamentos."}
+            textoConfirmar={alterandoStatus.ativo ? "Desativar" : "Ativar"}
             confirmar={() =>
-              void desativar()
+              void alterarSituacao()
             }
             fechar={() =>
-              setDesativando(null)
+              setAlterandoStatus(null)
             }
+            processando={processando}
+            perigosa={alterandoStatus.ativo}
+          />
+        </Modal>
+      )}
+      {excluindo && (
+        <Modal titulo="Excluir registro" fechar={() => setExcluindo(null)}>
+          <ConfirmacaoAcao
+            descricao={`Excluir “${excluindo.nome}” permanentemente? O registro e todo o histórico financeiro diretamente vinculado a ele serão removidos. Esta ação não pode ser desfeita.`}
+            textoConfirmar="Excluir definitivamente"
+            confirmar={() => void excluir()}
+            fechar={() => setExcluindo(null)}
+            processando={processando}
           />
         </Modal>
       )}

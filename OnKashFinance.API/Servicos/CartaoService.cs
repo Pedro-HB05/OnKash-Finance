@@ -149,11 +149,12 @@ public class CartaoService
         if (cartao is null)
             throw new KeyNotFoundException("Cartão não encontrado.");
 
-        var possuiHistorico = await _db.FaturasPessoais.AnyAsync(x => x.CartaoId == id) ||
-            await _db.ComprasCartaoPessoais.AnyAsync(x => x.CartaoId == id);
-        if (possuiHistorico)
-            throw new InvalidOperationException("Este cartão possui compras ou faturas vinculadas. Desative-o para preservar o histórico.");
+        if (cartao.Ativo)
+            throw new InvalidOperationException("Desative o cartão antes de excluí-lo.");
 
+        var faturasIds = await _db.FaturasPessoais.Where(x => x.CartaoId == id).Select(x => x.Id).ToListAsync();
+        var lancamentos = await _db.LancamentosPessoais.Where(x => x.FaturaId.HasValue && faturasIds.Contains(x.FaturaId.Value)).ToListAsync();
+        _db.LancamentosPessoais.RemoveRange(lancamentos);
         _db.CartoesPessoais.Remove(cartao);
         await _db.SaveChangesAsync();
     }

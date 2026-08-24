@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AreaAutenticada } from "@/componentes/AreaAutenticada";
 import { Badge, Cabecalho, Lista, Modal } from "@/componentes/Base";
 import { FormularioBaixa, FormularioSimples } from "@/componentes/Formularios";
@@ -566,7 +567,13 @@ export function PaginaFaturas() {
           {erro}
         </p>
       ) : (
-        <div className="tabela">
+        itens.length === 0 ? (
+          <div className="estado-vazio">
+            <h2>Nenhuma fatura disponível</h2>
+            <p>Cadastre um cartão e registre compras para acompanhar vencimentos e pagamentos.</p>
+            <Link className="botao" href="/pessoal/cartoes">Ir para cartões</Link>
+          </div>
+        ) : <div className="tabela">
           <table>
             <thead>
               <tr>

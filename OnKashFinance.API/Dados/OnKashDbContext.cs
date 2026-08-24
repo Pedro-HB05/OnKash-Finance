@@ -22,6 +22,8 @@ public class OnKashDbContext : DbContext
     public DbSet<CompraCartaoPessoal> ComprasCartaoPessoais => Set<CompraCartaoPessoal>();
     public DbSet<ParcelaCartaoPessoal> ParcelasCartaoPessoais => Set<ParcelaCartaoPessoal>();
     public DbSet<LancamentoPessoal> LancamentosPessoais => Set<LancamentoPessoal>();
+    public DbSet<OrcamentoPessoal> OrcamentosPessoais => Set<OrcamentoPessoal>();
+    public DbSet<LancamentoRecorrentePessoal> LancamentosRecorrentesPessoais => Set<LancamentoRecorrentePessoal>();
 
     public DbSet<ContaEmpresarial> ContasEmpresariais => Set<ContaEmpresarial>();
     public DbSet<CategoriaEmpresarial> CategoriasEmpresariais => Set<CategoriaEmpresarial>();
@@ -38,5 +40,6 @@ public class OnKashDbContext : DbContext
         MapeamentoGeral.Configurar(modelBuilder);
         MapeamentoPessoal.Configurar(modelBuilder);
         MapeamentoEmpresarial.Configurar(modelBuilder);
+        MapeamentoPlanejamento.Configurar(modelBuilder);
     }
 }

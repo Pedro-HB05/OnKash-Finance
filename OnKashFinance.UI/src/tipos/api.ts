@@ -118,6 +118,9 @@ export interface DashboardPessoal {
   entradas: number;
   saidas: number;
   resultadoMes: number;
+  entradasAnteriores: number;
+  saidasAnteriores: number;
+  resultadoAnterior: number;
 }
 export interface DashboardEmpresarial {
   saldo: number;
@@ -129,6 +132,9 @@ export interface DashboardEmpresarial {
   valoresVencidos: number;
   pagarVencido: number;
   receberVencido: number;
+  entradasAnteriores: number;
+  saidasAnteriores: number;
+  resultadoAnterior: number;
 }
 export interface UsuarioEmpresa {
   empresaUsuarioId: string;
@@ -138,4 +144,16 @@ export interface UsuarioEmpresa {
   perfil: Perfil;
   ativo: boolean;
   permissoes?: Record<string, boolean>;
+}
+export interface OrcamentoPessoal {
+  id: string; categoriaId: string; categoria: string; mes: string;
+  limite: number; utilizado: number; percentual: number;
+}
+export interface RecorrenciaPessoal {
+  id: string; contaId: string; conta: string; categoriaId: string; categoria: string;
+  tipo: "ENTRADA" | "SAIDA"; descricao: string; valor: number;
+  frequencia: "SEMANAL" | "MENSAL" | "ANUAL"; proximaExecucao: string; ativo: boolean;
+}
+export interface AlertaFinanceiro {
+  tipo: string; titulo: string; descricao: string; severidade: "INFO" | "ATENCAO" | "CRITICO"; link?: string;
 }

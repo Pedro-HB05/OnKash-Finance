@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { entrar } from "@/servicos/api";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
+import { ArrowRight, BarChart3, LockKeyhole, ShieldCheck } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -29,13 +30,28 @@ export default function Login() {
     }
   };
   return (
-    <main className="login">
-      <form className="cartao-login" onSubmit={enviar}>
-        <div className="marca">
-          OnKash <span>Finance</span>
+    <main className="autenticacao">
+      <section className="autenticacao-apresentacao" aria-label="Sobre o OnKash Finance">
+        <div className="marca marca-autenticacao">OnKash <span>Finance</span></div>
+        <div className="autenticacao-chamada">
+          <span className="selo-autenticacao"><ShieldCheck size={16} /> Finanças sob controle</span>
+          <h1>Clareza para decidir.<br />Controle para crescer.</h1>
+          <p>Organize sua vida financeira em um só lugar, acompanhe cada movimento e tome decisões com mais tranquilidade.</p>
+          <div className="beneficios-autenticacao">
+            <div><BarChart3 size={20} /><span><strong>Visão completa</strong><small>Seus números de forma simples e visual.</small></span></div>
+            <div><LockKeyhole size={20} /><span><strong>Acesso seguro</strong><small>Seus dados protegidos e sempre disponíveis.</small></span></div>
+          </div>
         </div>
-        <h1>Bem-vindo</h1>
-        <p>Cuide das suas finanças de forma simples.</p>
+        <p className="autenticacao-rodape">Gestão financeira pessoal e empresarial</p>
+      </section>
+      <section className="autenticacao-conteudo">
+      <form className="cartao-login" onSubmit={enviar}>
+        <div className="marca marca-mobile">OnKash <span>Finance</span></div>
+        <div className="cabecalho-autenticacao">
+          <span className="sobre-titulo">Acesse sua conta</span>
+          <h2>Bem-vindo de volta</h2>
+          <p>Entre para continuar cuidando das suas finanças.</p>
+        </div>
         <label className="campo">
           E-mail
           <input
@@ -61,13 +77,14 @@ export default function Login() {
             {erro}
           </p>
         )}
-        <button className="botao" disabled={enviando}>
-          {enviando ? "Entrando..." : "Entrar"}
+        <button className="botao botao-autenticacao" disabled={enviando}>
+          <span>{enviando ? "Entrando..." : "Entrar"}</span>{!enviando && <ArrowRight size={19} />}
         </button>
         <p className="link-cadastro">
           Não tem conta? <Link href="/cadastro">Crie agora</Link>
         </p>
       </form>
+      </section>
     </main>
   );
 }

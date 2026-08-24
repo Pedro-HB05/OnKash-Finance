@@ -9,6 +9,9 @@ public class DashboardPessoalResposta
     public decimal Saidas { get; set; }
 
     public decimal ResultadoMes { get; set; }
+    public decimal EntradasAnteriores { get; set; }
+    public decimal SaidasAnteriores { get; set; }
+    public decimal ResultadoAnterior { get; set; }
 }
 
 public class DashboardEmpresarialResposta
@@ -30,6 +33,9 @@ public class DashboardEmpresarialResposta
     public decimal PagarVencido { get; set; }
 
     public decimal ReceberVencido { get; set; }
+    public decimal EntradasAnteriores { get; set; }
+    public decimal SaidasAnteriores { get; set; }
+    public decimal ResultadoAnterior { get; set; }
 }
 
 public class GastoCategoriaResposta

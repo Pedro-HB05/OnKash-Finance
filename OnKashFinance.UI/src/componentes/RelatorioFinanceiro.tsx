@@ -93,10 +93,10 @@ export function RelatorioFinanceiro({ tipo }: { tipo: "pessoal" | "empresarial" 
           <p>Dados reais do período atual.</p>
         </div>
         <div className="acoes-relatorio">
-          <button className="botao secundario" onClick={exportarCsv}>
+          <button className="botao secundario" onClick={exportarCsv} disabled={!lancamentos.length} title={!lancamentos.length ? "Adicione lançamentos para exportar" : undefined}>
             <FileDown size={18} /> CSV
           </button>
-          <button className="botao" onClick={exportarPdf}>
+          <button className="botao" onClick={exportarPdf} disabled={!lancamentos.length} title={!lancamentos.length ? "Adicione lançamentos para exportar" : undefined}>
             <FileDown size={18} /> Exportar PDF
           </button>
         </div>
@@ -127,7 +127,13 @@ export function RelatorioFinanceiro({ tipo }: { tipo: "pessoal" | "empresarial" 
               </strong>
             </article>
           </section>
-          <section className="tabela relatorio-lista">
+          {lancamentos.length === 0 ? (
+            <div className="estado-vazio">
+              <span className="icone-estado-vazio"><FileDown size={24} /></span>
+              <h2>Nenhum dado para exportar</h2>
+              <p>Os lançamentos registrados aparecerão aqui e poderão ser exportados em CSV ou PDF.</p>
+            </div>
+          ) : <section className="tabela relatorio-lista">
             <table>
               <thead>
                 <tr>
@@ -164,7 +170,7 @@ export function RelatorioFinanceiro({ tipo }: { tipo: "pessoal" | "empresarial" 
                 ))}
               </tbody>
             </table>
-          </section>
+          </section>}
         </>
       )}
     </section>

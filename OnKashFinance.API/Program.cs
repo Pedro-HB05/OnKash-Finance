@@ -161,6 +161,7 @@ builder.Services.AddScoped<
 
 builder.Services.AddScoped<
     DashboardService>();
+builder.Services.AddScoped<PlanejamentoPessoalService>();
 
 // =========================================================
 // CORS

@@ -5,27 +5,37 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAutenticacao } from "@/contextos/AutenticacaoContexto";
 import { CabecalhoGlobal } from "@/componentes/CabecalhoGlobal";
+import { BarChart3, Building2, CreditCard, FileText, FolderTree, Gauge, Landmark, Menu as MenuIcon, ReceiptText, Tags, Target, UsersRound, UserRound, WalletCards, X } from "lucide-react";
 
 const pessoal = [
-  ["visao-geral", "Visão geral"],
-  ["lancamentos", "Lançamentos"],
-  ["contas", "Contas"],
-  ["cartoes", "Cartões"],
-  ["faturas", "Faturas"],
-  ["categorias", "Categorias"],
-  ["relatorios", "Relatórios"],
+  { grupo: "Principal", itens: [{ rota: "visao-geral", nome: "Visão geral", icone: Gauge }] },
+  { grupo: "Financeiro", itens: [
+    { rota: "lancamentos", nome: "Lançamentos", icone: ReceiptText },
+    { rota: "contas", nome: "Contas", icone: Landmark },
+    { rota: "cartoes", nome: "Cartões", icone: CreditCard },
+    { rota: "faturas", nome: "Faturas", icone: FileText },
+  ] },
+  { grupo: "Organização", itens: [
+    { rota: "planejamento", nome: "Planejamento", icone: Target },
+    { rota: "categorias", nome: "Categorias", icone: Tags },
+    { rota: "relatorios", nome: "Relatórios", icone: BarChart3 },
+  ] },
 ];
 const empresarial = [
-  ["visao-geral", "Visão geral"],
-  ["lancamentos", "Lançamentos"],
-  ["contas", "Contas"],
-  ["clientes", "Clientes"],
-  ["fornecedores", "Fornecedores"],
-  ["contas-a-pagar", "Contas a pagar"],
-  ["contas-a-receber", "Contas a receber"],
-  ["categorias", "Categorias"],
-  ["relatorios", "Relatórios"],
-  ["usuarios", "Usuários"],
+  { grupo: "Principal", itens: [{ rota: "visao-geral", nome: "Visão geral", icone: Gauge }] },
+  { grupo: "Financeiro", itens: [
+    { rota: "lancamentos", nome: "Lançamentos", icone: ReceiptText },
+    { rota: "contas", nome: "Contas", icone: Landmark },
+    { rota: "contas-a-pagar", nome: "Contas a pagar", icone: WalletCards },
+    { rota: "contas-a-receber", nome: "Contas a receber", icone: FileText },
+  ] },
+  { grupo: "Cadastros", itens: [
+    { rota: "clientes", nome: "Clientes", icone: UserRound },
+    { rota: "fornecedores", nome: "Fornecedores", icone: Building2 },
+    { rota: "categorias", nome: "Categorias", icone: FolderTree },
+    { rota: "usuarios", nome: "Usuários", icone: UsersRound },
+    { rota: "relatorios", nome: "Relatórios", icone: BarChart3 },
+  ] },
 ];
 
 export function AreaAutenticada({
@@ -50,34 +60,36 @@ export function AreaAutenticada({
     );
     return null;
   }
-  const itens = tipo === "pessoal" ? pessoal : empresarial;
+  const grupos = tipo === "pessoal" ? pessoal : empresarial;
   return (
     <div className="area">
       <aside className={`menu ${menuAberto ? "aberto" : ""}`}>
         <div className="topo-menu">
           <Link className="marca" href={`/${tipo}/visao-geral`}>
-            OnKash <span>Finance</span>
+            <span className="simbolo-marca"><WalletCards size={19} /></span>
+            <span className="nome-marca">OnKash <em>Finance</em></span>
           </Link>
           <button
             className="botao-menu"
             aria-expanded={menuAberto}
             onClick={() => setMenuAberto(!menuAberto)}
           >
-            Menu
+            {menuAberto ? <X size={20} /> : <MenuIcon size={20} />}
+            <span className="sr-only">Menu</span>
           </button>
         </div>
         <nav aria-label="Menu principal">
-          {itens.map(([rota, nome]) => (
-            <Link
-              key={rota}
-              className={caminhoAtual.includes(`/${rota}`) ? "ativo" : ""}
-              href={`/${tipo}/${rota}`}
-              onClick={() => setMenuAberto(false)}
-            >
-              {nome}
-            </Link>
-          ))}
+          {grupos.map((grupo) => <div className="grupo-menu" key={grupo.grupo}>
+            <span className="titulo-grupo-menu">{grupo.grupo}</span>
+            {grupo.itens.map(({ rota, nome, icone: Icone }) => {
+              const ativo = caminhoAtual.includes(`/${rota}`);
+              return <Link key={rota} className={ativo ? "ativo" : ""} aria-current={ativo ? "page" : undefined} href={`/${tipo}/${rota}`} onClick={() => setMenuAberto(false)}>
+                <Icone size={18} strokeWidth={2} /><span>{nome}</span>
+              </Link>;
+            })}
+          </div>)}
         </nav>
+        <div className="tipo-conta-menu"><span>{tipo === "pessoal" ? "P" : "E"}</span><div><strong>Espaço {tipo}</strong><small>Ambiente protegido</small></div></div>
       </aside>
       <main className="conteudo">
         <CabecalhoGlobal />

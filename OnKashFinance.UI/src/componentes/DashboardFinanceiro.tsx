@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -105,6 +107,12 @@ function nomePeriodo(
   }
 }
 
+function comparacao(atual: number, anterior: number) {
+  if (anterior === 0) return atual === 0 ? "Sem mudança no período" : "Primeiro valor registrado";
+  const percentual = ((atual - anterior) / Math.abs(anterior)) * 100;
+  return `${percentual >= 0 ? "+" : ""}${percentual.toFixed(1).replace(".", ",")}% vs. período anterior`;
+}
+
 export function DashboardFinanceiro({
   tipo,
   dados,
@@ -144,6 +152,8 @@ export function DashboardFinanceiro({
       saidas,
     },
   ];
+
+  const semMovimento = entradas === 0 && saidas === 0;
 
   return (
     <section className="painel-dashboard">
@@ -290,7 +300,7 @@ export function DashboardFinanceiro({
             </strong>
 
             <small>
-              Entradas no período
+              {comparacao(entradas, valorNumerico(dados.entradasAnteriores))}
             </small>
           </div>
         </article>
@@ -308,7 +318,7 @@ export function DashboardFinanceiro({
             </strong>
 
             <small>
-              Saídas no período
+              {comparacao(saidas, valorNumerico(dados.saidasAnteriores))}
             </small>
           </div>
         </article>
@@ -332,7 +342,7 @@ export function DashboardFinanceiro({
             </strong>
 
             <small>
-              Entradas menos saídas
+              {comparacao(resultado, valorNumerico(dados.resultadoAnterior))}
             </small>
           </div>
         </article>
@@ -365,7 +375,16 @@ export function DashboardFinanceiro({
             </span>
           </div>
 
-          <div className="grafico">
+          {semMovimento ? (
+            <div className="estado-vazio estado-vazio-grafico">
+              <span className="icone-estado-vazio"><TrendingUp size={25} /></span>
+              <h3>Ainda não há movimentações neste período</h3>
+              <p>Registre uma entrada ou saída para acompanhar a evolução das suas finanças aqui.</p>
+              <Link className="botao" href={`/${tipo}/lancamentos`}>
+                Ir para lançamentos
+              </Link>
+            </div>
+          ) : <div className="grafico">
             <ResponsiveContainer
               width="100%"
               height="100%"
@@ -451,7 +470,7 @@ export function DashboardFinanceiro({
                 />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </div>}
         </article>
       </section>
     </section>

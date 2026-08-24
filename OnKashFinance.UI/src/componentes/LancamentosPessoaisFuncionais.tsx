@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Search } from "lucide-react";
 
 import { AreaAutenticada } from "@/componentes/AreaAutenticada";
 import { Badge, Campo, Modal } from "@/componentes/Base";
@@ -126,6 +128,8 @@ export function LancamentosPessoaisFuncionais() {
 
   const [salvando, setSalvando] =
     useState(false);
+  const [busca, setBusca] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<"TODOS" | TipoLancamento>("TODOS");
 
   const carregarDados = async () => {
     if (!sessao) {
@@ -538,6 +542,11 @@ export function LancamentosPessoaisFuncionais() {
     tipoSelecionado === "SAIDA" &&
     formaPagamento === "CARTAO";
 
+  const possuiContaAtiva = contas.some((conta) => conta.ativo);
+  const possuiCategoriaAtiva = categorias.some((categoria) => categoria.ativo);
+  const podeCriarLancamento = possuiContaAtiva && possuiCategoriaAtiva;
+  const lancamentosFiltrados = lancamentos.filter(l => (filtroTipo === "TODOS" || l.tipo === filtroTipo) && `${l.descricao} ${l.conta} ${l.categoria ?? ""}`.toLowerCase().includes(busca.toLowerCase()));
+
   return (
     <AreaAutenticada tipo="pessoal">
       <header className="cabecalho">
@@ -555,6 +564,8 @@ export function LancamentosPessoaisFuncionais() {
           onClick={
             abrirNovoLancamento
           }
+          disabled={!podeCriarLancamento}
+          title={!podeCriarLancamento ? "Cadastre uma conta e uma categoria ativa primeiro" : undefined}
         >
           + Novo lançamento
         </button>
@@ -572,7 +583,19 @@ export function LancamentosPessoaisFuncionais() {
         </p>
       )}
 
-      <div className="tabela">
+      {lancamentos.length > 0 && <div className="barra-filtros"><label><Search size={17}/><input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por descrição, conta ou categoria..." aria-label="Buscar lançamentos"/></label><select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value as typeof filtroTipo)} aria-label="Filtrar por tipo"><option value="TODOS">Todos os tipos</option><option value="ENTRADA">Entradas</option><option value="SAIDA">Saídas</option></select><span>{lancamentosFiltrados.length} resultado(s)</span></div>}
+      {lancamentos.length === 0 ? (
+        <div className="estado-vazio estado-vazio-onboarding">
+          <p className="sobre-titulo">Primeiros passos</p>
+          <h2>Registre sua primeira movimentação</h2>
+          <p>Prepare a estrutura básica e comece a acompanhar seu dinheiro.</p>
+          <ol className="passos-onboarding">
+            <li className={possuiContaAtiva ? "concluido" : ""}><span>1</span><div><strong>Cadastre uma conta</strong><small>Onde seu saldo será acompanhado.</small></div>{!possuiContaAtiva && <Link href="/pessoal/contas">Cadastrar</Link>}</li>
+            <li className={possuiCategoriaAtiva ? "concluido" : ""}><span>2</span><div><strong>Organize as categorias</strong><small>Classifique entradas e saídas.</small></div>{!possuiCategoriaAtiva && <Link href="/pessoal/categorias">Cadastrar</Link>}</li>
+            <li><span>3</span><div><strong>Adicione um lançamento</strong><small>Registre sua primeira entrada ou saída.</small></div>{podeCriarLancamento && <button type="button" onClick={abrirNovoLancamento}>Começar</button>}</li>
+          </ol>
+        </div>
+      ) : <div className="tabela">
         <table>
           <thead>
             <tr>
@@ -588,7 +611,7 @@ export function LancamentosPessoaisFuncionais() {
           </thead>
 
           <tbody>
-            {lancamentos.map(
+            {lancamentosFiltrados.map(
               (lancamento) => (
                 <tr
                   key={
@@ -672,7 +695,7 @@ export function LancamentosPessoaisFuncionais() {
             )}
           </tbody>
         </table>
-      </div>
+      </div>}
 
       {lancamentoEmEdicao && (
         <Modal

@@ -113,12 +113,25 @@ public class DashboardService
                     (decimal?)x.Valor)
             ?? 0;
 
+        decimal entradasAnteriores = 0, saidasAnteriores = 0;
+        if (inicio.HasValue && fim.HasValue)
+        {
+            var duracao = fim.Value.DayNumber - inicio.Value.DayNumber + 1;
+            var fimAnterior = inicio.Value.AddDays(-1);
+            var inicioAnterior = fimAnterior.AddDays(-(duracao - 1));
+            entradasAnteriores = await lancamentos.Where(x => x.Tipo == TipoLancamentoPessoal.ENTRADA && x.Data >= inicioAnterior && x.Data <= fimAnterior).SumAsync(x => (decimal?)x.Valor) ?? 0;
+            saidasAnteriores = await lancamentos.Where(x => x.Tipo == TipoLancamentoPessoal.SAIDA && x.Data >= inicioAnterior && x.Data <= fimAnterior).SumAsync(x => (decimal?)x.Valor) ?? 0;
+        }
+
         return new DashboardPessoalResposta
         {
             Saldo = saldo,
             Entradas = entradas,
             Saidas = saidas,
-            ResultadoMes = entradas - saidas
+            ResultadoMes = entradas - saidas,
+            EntradasAnteriores = entradasAnteriores,
+            SaidasAnteriores = saidasAnteriores,
+            ResultadoAnterior = entradasAnteriores - saidasAnteriores
         };
     }
 
@@ -223,6 +236,16 @@ public class DashboardService
                     (decimal?)x.Valor)
             ?? 0;
 
+        decimal entradasAnteriores = 0, saidasAnteriores = 0;
+        if (inicio.HasValue && fim.HasValue)
+        {
+            var duracao = fim.Value.DayNumber - inicio.Value.DayNumber + 1;
+            var fimAnterior = inicio.Value.AddDays(-1);
+            var inicioAnterior = fimAnterior.AddDays(-(duracao - 1));
+            entradasAnteriores = await lancamentos.Where(x => x.Tipo == TipoLancamentoEmpresarial.RECEITA && x.Data >= inicioAnterior && x.Data <= fimAnterior).SumAsync(x => (decimal?)x.Valor) ?? 0;
+            saidasAnteriores = await lancamentos.Where(x => x.Tipo == TipoLancamentoEmpresarial.DESPESA && x.Data >= inicioAnterior && x.Data <= fimAnterior).SumAsync(x => (decimal?)x.Valor) ?? 0;
+        }
+
         var contasPagar =
             await _db.ContasPagar
                 .Where(x =>
@@ -285,7 +308,10 @@ public class DashboardService
             ReceberVencido = receberVencido,
             ValoresVencidos =
                 pagarVencido +
-                receberVencido
+                receberVencido,
+            EntradasAnteriores = entradasAnteriores,
+            SaidasAnteriores = saidasAnteriores,
+            ResultadoAnterior = entradasAnteriores - saidasAnteriores
         };
     }
 

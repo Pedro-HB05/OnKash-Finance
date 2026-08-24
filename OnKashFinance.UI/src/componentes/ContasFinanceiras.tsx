@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { AreaAutenticada } from "@/componentes/AreaAutenticada";
 import { Campo, Modal } from "@/componentes/Base";
 import { ConfirmacaoAcao, MenuAcoes } from "@/componentes/MenuAcoes";
@@ -28,6 +29,18 @@ export function ContasFinanceiras({ receber }: { receber: boolean }) {
   const [cancelando, setCancelando] = useState<ItemFinanceiro | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [efetivando, setEfetivando] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [status, setStatus] = useState("TODOS");
+
+  const itensFiltrados = itens.filter((item) => {
+    const pessoa = receber
+      ? (item as ContaReceber).cliente
+      : (item as ContaPagar).fornecedor;
+    const correspondeBusca = `${pessoa ?? ""} ${item.descricao}`
+      .toLowerCase()
+      .includes(busca.trim().toLowerCase());
+    return correspondeBusca && (status === "TODOS" || item.status === status);
+  });
 
   const carregar = async () => {
     if (!sessao) return;
@@ -207,6 +220,26 @@ export function ContasFinanceiras({ receber }: { receber: boolean }) {
       ) : itens.length === 0 ? (
         <p className="estado">Nenhuma conta encontrada.</p>
       ) : (
+        <>
+        <div className="barra-filtros">
+          <label>
+            <Search size={17} />
+            <input
+              value={busca}
+              onChange={(evento) => setBusca(evento.target.value)}
+              placeholder={`Buscar por ${receber ? "cliente" : "fornecedor"} ou descrição...`}
+              aria-label={`Buscar ${titulo.toLowerCase()}`}
+            />
+          </label>
+          <select value={status} onChange={(evento) => setStatus(evento.target.value)} aria-label="Filtrar por status">
+            <option value="TODOS">Todos os status</option>
+            <option value="PENDENTE">Pendentes</option>
+            <option value="ATRASADO">Atrasadas</option>
+            <option value={receber ? "RECEBIDO" : "PAGO"}>{receber ? "Recebidas" : "Pagas"}</option>
+            <option value="CANCELADO">Canceladas</option>
+          </select>
+          <span>{itensFiltrados.length} resultado(s)</span>
+        </div>
         <div className="tabela">
           <table>
             <thead>
@@ -222,7 +255,7 @@ export function ContasFinanceiras({ receber }: { receber: boolean }) {
               </tr>
             </thead>
             <tbody>
-              {itens.map((item) => {
+              {itensFiltrados.map((item) => {
                 const podeEfetivar = item.status === "PENDENTE" || item.status === "ATRASADO";
                 const dataEfetivacao = receber
                   ? (item as ContaReceber).dataRecebimento
@@ -265,9 +298,13 @@ export function ContasFinanceiras({ receber }: { receber: boolean }) {
                   </tr>
                 );
               })}
+              {itensFiltrados.length === 0 && (
+                <tr><td colSpan={8}><div className="resultado-vazio">Nenhuma conta corresponde aos filtros.</div></td></tr>
+              )}
             </tbody>
           </table>
         </div>
+        </>
       )}
       {abrirCadastro && (
         <Modal
