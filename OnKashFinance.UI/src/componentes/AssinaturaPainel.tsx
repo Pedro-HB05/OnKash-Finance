@@ -8,6 +8,7 @@ import type { AssinaturaResumo } from "@/tipos/api";
 
 export function AssinaturaPainel() {
   const { sessao } = useAutenticacao();
+  const empresarial = sessao?.tipoConta === "EMPRESARIAL";
   const [resumo, setResumo] = useState<AssinaturaResumo | null>(null);
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState<string>();
@@ -40,9 +41,11 @@ export function AssinaturaPainel() {
   return <section className="pagina-assinatura">
     <header className="hero-assinatura">
       <div>
-        <p className="sobre-titulo">Fase 3 · Produto e escala</p>
-        <h1>Seu plano OnKash</h1>
-        <p>Acompanhe o uso da plataforma e escolha como sua gestão financeira vai crescer.</p>
+        <p className="sobre-titulo">{empresarial ? "Planos para empresas" : "Planos para você"}</p>
+        <h1>{empresarial ? "Plano empresarial OnKash" : "Plano pessoal OnKash"}</h1>
+        <p>{empresarial
+          ? "Recursos pensados para operação, equipe, controle e crescimento da empresa."
+          : "Recursos pensados para organização, planejamento e evolução da sua vida financeira."}</p>
       </div>
       <div className="plano-atual-selo"><Crown size={20}/><span><small>Plano atual</small><strong>{resumo.nomePlano}</strong></span></div>
     </header>
@@ -61,7 +64,7 @@ export function AssinaturaPainel() {
       })}</div>
     </section>
 
-    <div className="titulo-planos"><div><p className="sobre-titulo">Próximos planos</p><h2>Preparado para cada momento</h2></div><span className="selo-em-breve"><Rocket size={15}/> Pagamentos em breve</span></div>
+    <div className="titulo-planos"><div><p className="sobre-titulo">{empresarial ? "Soluções empresariais" : "Soluções pessoais"}</p><h2>{empresarial ? "Planos para cada fase do negócio" : "Planos para cada fase da sua vida financeira"}</h2></div><span className="selo-em-breve"><Rocket size={15}/> Pagamentos em breve</span></div>
     <section className="grade-planos">{resumo.planos.map(plano => <article key={plano.codigo} className={`${plano.destaque ? "destaque" : ""} ${plano.atual ? "atual" : ""}`}>
       {plano.destaque && <span className="mais-escolhido"><Sparkles size={13}/> Recomendado</span>}
       <header><h3>{plano.nome}</h3><p>{plano.descricao}</p></header>
