@@ -132,7 +132,9 @@ public class PlanejamentoPessoalService
         foreach (var conta in contas)
         {
             var movimentacao = await _db.LancamentosPessoais.Where(x => x.UsuarioId == usuarioId && x.ContaId == conta.Id && !x.Cancelado && x.Data <= hoje).SumAsync(x => (decimal?)(x.Tipo == TipoLancamentoPessoal.ENTRADA ? x.Valor : -x.Valor)) ?? 0;
-            if (conta.SaldoInicial + movimentacao < 0) alertas.Add(new AlertaFinanceiroResposta { Tipo = "SALDO", Titulo = "Conta com saldo negativo", Descricao = $"{conta.Nome}: R$ {conta.SaldoInicial + movimentacao:N2}.", Severidade = "CRITICO", Link = "/pessoal/contas" });
+            var transferenciasRecebidas = await _db.LancamentosPessoais.Where(x => x.UsuarioId == usuarioId && x.ContaDestinoId == conta.Id && x.Tipo == TipoLancamentoPessoal.TRANSFERENCIA && !x.Cancelado && x.Data <= hoje).SumAsync(x => (decimal?)x.Valor) ?? 0;
+            var saldoAtual = conta.SaldoInicial + movimentacao + transferenciasRecebidas;
+            if (saldoAtual < 0) alertas.Add(new AlertaFinanceiroResposta { Tipo = "SALDO", Titulo = "Conta com saldo negativo", Descricao = $"{conta.Nome}: R$ {saldoAtual:N2}.", Severidade = "CRITICO", Link = "/pessoal/contas" });
         }
         return alertas;
     }

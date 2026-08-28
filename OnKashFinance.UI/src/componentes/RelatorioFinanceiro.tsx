@@ -14,6 +14,14 @@ import type {
 import { data, moeda } from "@/utilitarios/formatadores";
 
 type Resumo = DashboardPessoal | DashboardEmpresarial;
+const nomeTipo = (tipo: LancamentoPessoal["tipo"] | LancamentoEmpresarial["tipo"]) => ({
+  ENTRADA: "Entrada",
+  SAIDA: "Saída",
+  RECEITA: "Receita",
+  DESPESA: "Despesa",
+  TRANSFERENCIA: "Transferência",
+})[tipo];
+
 export function RelatorioFinanceiro({ tipo }: { tipo: "pessoal" | "empresarial" }) {
   const { sessao } = useAutenticacao();
   const [resumo, setResumo] = useState<Resumo | null>(null);
@@ -33,8 +41,10 @@ export function RelatorioFinanceiro({ tipo }: { tipo: "pessoal" | "empresarial" 
     data(item.data),
     item.descricao,
     item.categoria ?? "—",
-    item.conta,
-    item.tipo === "ENTRADA" ? "Entrada" : "Saída",
+    item.tipo === "TRANSFERENCIA" && item.contaDestino
+      ? `${item.conta} → ${item.contaDestino}`
+      : item.conta,
+    nomeTipo(item.tipo),
     moeda(item.valor),
     item.cancelado ? "Cancelado" : "Ativo",
   ]);
@@ -152,18 +162,8 @@ export function RelatorioFinanceiro({ tipo }: { tipo: "pessoal" | "empresarial" 
                     <td>{data(item.data)}</td>
                     <td>{item.descricao}</td>
                     <td>{item.categoria ?? "—"}</td>
-                    <td>{item.conta}</td>
-                    <td>
-                      {item.tipo === "ENTRADA"
-                        ? "Entrada"
-                        : item.tipo === "SAIDA"
-                          ? "Saída"
-                          : item.tipo === "RECEITA"
-                            ? "Receita"
-                            : item.tipo === "DESPESA"
-                              ? "Despesa"
-                              : "Transferência"}
-                    </td>
+                    <td>{item.tipo === "TRANSFERENCIA" && item.contaDestino ? `${item.conta} → ${item.contaDestino}` : item.conta}</td>
+                    <td>{nomeTipo(item.tipo)}</td>
                     <td>{moeda(item.valor)}</td>
                     <td>{item.cancelado ? "Cancelado" : "Ativo"}</td>
                   </tr>

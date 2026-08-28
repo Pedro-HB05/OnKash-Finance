@@ -49,7 +49,7 @@ public class PessoalService
 
         foreach (var conta in contas)
         {
-            var movimentos = await _db.LancamentosPessoais
+            var movimentosSaida = await _db.LancamentosPessoais
                 .Where(x =>
                     x.UsuarioId == usuarioId &&
                     x.ContaId == conta.Id &&
@@ -59,6 +59,14 @@ public class PessoalService
                         ? x.Valor
                         : -x.Valor);
 
+            var transferenciasRecebidas = await _db.LancamentosPessoais
+                .Where(x =>
+                    x.UsuarioId == usuarioId &&
+                    x.ContaDestinoId == conta.Id &&
+                    x.Tipo == TipoLancamentoPessoal.TRANSFERENCIA &&
+                    !x.Cancelado)
+                .SumAsync(x => x.Valor);
+
             resposta.Add(new ContaPessoalResposta
             {
                 Id = conta.Id,
@@ -66,7 +74,7 @@ public class PessoalService
                 Tipo = conta.Tipo,
                 SaldoInicial = conta.SaldoInicial,
                 SaldoAtual =
-                    conta.SaldoInicial + movimentos,
+                    conta.SaldoInicial + movimentosSaida + transferenciasRecebidas,
                 Ativo = conta.Ativo
             });
         }
@@ -149,7 +157,9 @@ public class PessoalService
         if (conta.Ativo)
             throw new InvalidOperationException("Desative a conta antes de excluí-la.");
 
-        var lancamentos = await _db.LancamentosPessoais.Where(x => x.ContaId == id).ToListAsync();
+        var lancamentos = await _db.LancamentosPessoais
+            .Where(x => x.ContaId == id || x.ContaDestinoId == id)
+            .ToListAsync();
         _db.LancamentosPessoais.RemoveRange(lancamentos);
         _db.ContasPessoais.Remove(conta);
         await _db.SaveChangesAsync();
@@ -294,6 +304,10 @@ public class PessoalService
                     Id = x.Id,
                     ContaId = x.ContaId,
                     Conta = x.Conta.Nome,
+                    ContaDestinoId = x.ContaDestinoId,
+                    ContaDestino = x.ContaDestino != null
+                        ? x.ContaDestino.Nome
+                        : null,
                     CategoriaId = x.CategoriaId,
                     Categoria =
                         x.Categoria != null
@@ -323,46 +337,19 @@ public class PessoalService
             throw new InvalidOperationException(
                 "A descrição é obrigatória.");
 
-        var conta = await _db.ContasPessoais
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x =>
-                x.Id == request.ContaId &&
-                x.UsuarioId == usuarioId &&
-                x.Ativo);
-
-        if (conta is null)
-            throw new InvalidOperationException(
-                "Conta inválida.");
-
-        if (!request.CategoriaId.HasValue)
-        {
-            throw new InvalidOperationException(
-                "A categoria é obrigatória.");
-        }
-
-        var categoria = await _db.CategoriasPessoais
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x =>
-                x.Id == request.CategoriaId.Value &&
-                x.Ativo &&
-                (x.UsuarioId == null ||
-                 x.UsuarioId == usuarioId));
-
-        if (categoria is null)
-            throw new InvalidOperationException(
-                "Categoria inválida.");
-
-        if (categoria.Tipo.ToString() != request.Tipo.ToString())
-        {
-            throw new InvalidOperationException(
-                "O tipo da categoria não corresponde ao lançamento.");
-        }
+        var (conta, contaDestino, categoria) = await ValidarMovimentacaoAsync(
+            usuarioId,
+            request.ContaId,
+            request.ContaDestinoId,
+            request.CategoriaId,
+            request.Tipo);
 
         var lancamento = new LancamentoPessoal
         {
             UsuarioId = usuarioId,
             ContaId = request.ContaId,
-            CategoriaId = request.CategoriaId,
+            ContaDestinoId = contaDestino?.Id,
+            CategoriaId = categoria?.Id,
             Tipo = request.Tipo,
             Descricao = request.Descricao.Trim(),
             Valor = request.Valor,
@@ -380,8 +367,10 @@ public class PessoalService
             Id = lancamento.Id,
             ContaId = lancamento.ContaId,
             Conta = conta.Nome,
+            ContaDestinoId = lancamento.ContaDestinoId,
+            ContaDestino = contaDestino?.Nome,
             CategoriaId = lancamento.CategoriaId,
-            Categoria = categoria.Nome,
+            Categoria = categoria?.Nome,
             Tipo = lancamento.Tipo,
             Descricao = lancamento.Descricao,
             Valor = lancamento.Valor,
@@ -408,17 +397,24 @@ public class PessoalService
             throw new KeyNotFoundException(
                 "Lançamento não encontrado.");
 
-        var contaExiste = await _db.ContasPessoais
-            .AnyAsync(x =>
-                x.Id == request.ContaId &&
-                x.UsuarioId == usuarioId);
-
-        if (!contaExiste)
+        if (request.Valor <= 0)
             throw new InvalidOperationException(
-                "Conta inválida.");
+                "O valor deve ser maior que zero.");
+
+        if (string.IsNullOrWhiteSpace(request.Descricao))
+            throw new InvalidOperationException(
+                "A descrição é obrigatória.");
+
+        var (_, contaDestino, categoria) = await ValidarMovimentacaoAsync(
+            usuarioId,
+            request.ContaId,
+            request.ContaDestinoId,
+            request.CategoriaId,
+            request.Tipo);
 
         lancamento.ContaId = request.ContaId;
-        lancamento.CategoriaId = request.CategoriaId;
+        lancamento.ContaDestinoId = contaDestino?.Id;
+        lancamento.CategoriaId = categoria?.Id;
         lancamento.Tipo = request.Tipo;
         lancamento.Descricao =
             request.Descricao.Trim();
@@ -428,6 +424,71 @@ public class PessoalService
             request.Observacao;
 
         await _db.SaveChangesAsync();
+    }
+
+    private async Task<(ContaPessoal Conta, ContaPessoal? ContaDestino, CategoriaPessoal? Categoria)>
+        ValidarMovimentacaoAsync(
+            Guid usuarioId,
+            Guid contaId,
+            Guid? contaDestinoId,
+            Guid? categoriaId,
+            TipoLancamentoPessoal tipo)
+    {
+        var conta = await _db.ContasPessoais
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x =>
+                x.Id == contaId &&
+                x.UsuarioId == usuarioId &&
+                x.Ativo);
+
+        if (conta is null)
+            throw new InvalidOperationException("Conta de origem inválida.");
+
+        if (tipo == TipoLancamentoPessoal.TRANSFERENCIA)
+        {
+            if (!contaDestinoId.HasValue)
+                throw new InvalidOperationException("Selecione a conta de destino.");
+
+            if (contaDestinoId.Value == contaId)
+                throw new InvalidOperationException("As contas de origem e destino devem ser diferentes.");
+
+            var contaDestino = await _db.ContasPessoais
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == contaDestinoId.Value &&
+                    x.UsuarioId == usuarioId &&
+                    x.Ativo);
+
+            if (contaDestino is null)
+                throw new InvalidOperationException("Conta de destino inválida.");
+
+            return (conta, contaDestino, null);
+        }
+
+        if (contaDestinoId.HasValue)
+            throw new InvalidOperationException("Conta de destino só pode ser informada em transferências.");
+
+        if (!categoriaId.HasValue)
+            throw new InvalidOperationException("A categoria é obrigatória.");
+
+        var categoria = await _db.CategoriasPessoais
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x =>
+                x.Id == categoriaId.Value &&
+                x.Ativo &&
+                (x.UsuarioId == null || x.UsuarioId == usuarioId));
+
+        if (categoria is null)
+            throw new InvalidOperationException("Categoria inválida.");
+
+        var tipoCategoria = tipo == TipoLancamentoPessoal.ENTRADA
+            ? TipoCategoria.ENTRADA
+            : TipoCategoria.SAIDA;
+
+        if (categoria.Tipo != tipoCategoria)
+            throw new InvalidOperationException("O tipo da categoria não corresponde ao lançamento.");
+
+        return (conta, null, categoria);
     }
 
     public async Task CancelarLancamentoAsync(

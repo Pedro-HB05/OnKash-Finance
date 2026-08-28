@@ -8,6 +8,8 @@ public class LancamentoPessoal
 
     public Guid ContaId { get; set; }
 
+    public Guid? ContaDestinoId { get; set; }
+
     public Guid? CategoriaId { get; set; }
 
     public Guid? FaturaId { get; set; }
@@ -33,6 +35,8 @@ public class LancamentoPessoal
     public Usuario Usuario { get; set; } = null!;
 
     public ContaPessoal Conta { get; set; } = null!;
+
+    public ContaPessoal? ContaDestino { get; set; }
 
     public CategoriaPessoal? Categoria { get; set; }
 

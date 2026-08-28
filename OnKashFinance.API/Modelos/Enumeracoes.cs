@@ -15,7 +15,8 @@ public enum TipoCategoria
 public enum TipoLancamentoPessoal
 {
     ENTRADA,
-    SAIDA
+    SAIDA,
+    TRANSFERENCIA
 }
 
 public enum StatusFatura

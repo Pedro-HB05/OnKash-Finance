@@ -88,7 +88,7 @@ public class InteligenciaFinanceiraService
         if (pessoal)
         {
             saldo = await _db.ContasPessoais.Where(x => x.UsuarioId == proprietarioId && x.Ativo).SumAsync(x => (decimal?)x.SaldoInicial) ?? 0;
-            saldo += await _db.LancamentosPessoais.Where(x => x.UsuarioId == proprietarioId && !x.Cancelado && x.Data <= hoje).SumAsync(x => (decimal?)(x.Tipo == TipoLancamentoPessoal.ENTRADA ? x.Valor : -x.Valor)) ?? 0;
+            saldo += await _db.LancamentosPessoais.Where(x => x.UsuarioId == proprietarioId && !x.Cancelado && x.Data <= hoje).SumAsync(x => (decimal?)(x.Tipo == TipoLancamentoPessoal.ENTRADA ? x.Valor : x.Tipo == TipoLancamentoPessoal.SAIDA ? -x.Valor : 0)) ?? 0;
             var recorrencias = await _db.LancamentosRecorrentesPessoais.AsNoTracking().Where(x => x.UsuarioId == proprietarioId && x.Ativo && x.ProximaExecucao <= fim).ToListAsync();
             foreach (var item in recorrencias)
             {

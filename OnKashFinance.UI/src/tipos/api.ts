@@ -63,9 +63,11 @@ export interface LancamentoPessoal {
   id: string;
   contaId: string;
   conta: string;
+  contaDestinoId?: string;
+  contaDestino?: string;
   categoriaId?: string;
   categoria?: string;
-  tipo: "ENTRADA" | "SAIDA";
+  tipo: "ENTRADA" | "SAIDA" | "TRANSFERENCIA";
   descricao: string;
   valor: number;
   data: string;

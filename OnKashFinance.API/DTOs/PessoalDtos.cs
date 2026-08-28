@@ -51,6 +51,7 @@ public class CategoriaPessoalResposta
 public class CriarLancamentoPessoalRequest
 {
     public Guid ContaId { get; set; }
+    public Guid? ContaDestinoId { get; set; }
     public Guid? CategoriaId { get; set; }
     public TipoLancamentoPessoal Tipo { get; set; }
     public string Descricao { get; set; } = string.Empty;
@@ -62,6 +63,7 @@ public class CriarLancamentoPessoalRequest
 public class AtualizarLancamentoPessoalRequest
 {
     public Guid ContaId { get; set; }
+    public Guid? ContaDestinoId { get; set; }
     public Guid? CategoriaId { get; set; }
     public TipoLancamentoPessoal Tipo { get; set; }
     public string Descricao { get; set; } = string.Empty;
@@ -75,6 +77,8 @@ public class LancamentoPessoalResposta
     public Guid Id { get; set; }
     public Guid ContaId { get; set; }
     public string Conta { get; set; } = string.Empty;
+    public Guid? ContaDestinoId { get; set; }
+    public string? ContaDestino { get; set; }
     public Guid? CategoriaId { get; set; }
     public string? Categoria { get; set; }
     public TipoLancamentoPessoal Tipo { get; set; }

@@ -61,7 +61,9 @@ public class DashboardService
                         x.Tipo ==
                         TipoLancamentoPessoal.ENTRADA
                             ? x.Valor
-                            : -x.Valor
+                            : x.Tipo == TipoLancamentoPessoal.SAIDA
+                                ? -x.Valor
+                                : 0
                     ))
             ?? 0;
 

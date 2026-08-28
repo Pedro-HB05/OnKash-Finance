@@ -304,6 +304,7 @@ public static class MapeamentoPessoal
 
         entidade.Property(x => x.UsuarioId).HasColumnName("usuario_id");
         entidade.Property(x => x.ContaId).HasColumnName("conta_id");
+        entidade.Property(x => x.ContaDestinoId).HasColumnName("conta_destino_id");
         entidade.Property(x => x.CategoriaId).HasColumnName("categoria_id");
         entidade.Property(x => x.FaturaId).HasColumnName("fatura_id");
 
@@ -346,6 +347,11 @@ public static class MapeamentoPessoal
         entidade.HasOne(x => x.Conta)
             .WithMany(x => x.Lancamentos)
             .HasForeignKey(x => x.ContaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        entidade.HasOne(x => x.ContaDestino)
+            .WithMany()
+            .HasForeignKey(x => x.ContaDestinoId)
             .OnDelete(DeleteBehavior.Restrict);
 
         entidade.HasOne(x => x.Categoria)

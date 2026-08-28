@@ -21,7 +21,7 @@ import {
   textoEnum,
 } from "@/utilitarios/formatadores";
 
-type TipoLancamento = "ENTRADA" | "SAIDA";
+type TipoLancamento = "ENTRADA" | "SAIDA" | "TRANSFERENCIA";
 
 type FormaPagamento = "CONTA" | "CARTAO";
 
@@ -105,6 +105,11 @@ export function LancamentosPessoaisFuncionais() {
   const [
     contaSelecionada,
     setContaSelecionada,
+  ] = useState("");
+
+  const [
+    contaDestinoSelecionada,
+    setContaDestinoSelecionada,
   ] = useState("");
 
   const [
@@ -205,6 +210,7 @@ export function LancamentosPessoaisFuncionais() {
     setFormaPagamento("CONTA");
 
     setContaSelecionada("");
+    setContaDestinoSelecionada("");
     setCategoriaSelecionada("");
     setCartaoSelecionado("");
 
@@ -238,6 +244,10 @@ export function LancamentosPessoaisFuncionais() {
       lancamento.contaId ?? "",
     );
 
+    setContaDestinoSelecionada(
+      lancamento.contaDestinoId ?? "",
+    );
+
     setCategoriaSelecionada(
       lancamento.categoriaId ?? "",
     );
@@ -257,7 +267,11 @@ export function LancamentosPessoaisFuncionais() {
 
     setCategoriaSelecionada("");
 
-    if (novoTipo === "ENTRADA") {
+    if (novoTipo !== "TRANSFERENCIA") {
+      setContaDestinoSelecionada("");
+    }
+
+    if (novoTipo !== "SAIDA") {
       setFormaPagamento("CONTA");
       setCartaoSelecionado("");
       setNumeroParcelas(1);
@@ -338,7 +352,10 @@ export function LancamentosPessoaisFuncionais() {
       return;
     }
 
-    if (!categoriaSelecionada) {
+    if (
+      tipoSelecionado !== "TRANSFERENCIA" &&
+      !categoriaSelecionada
+    ) {
       setErro(
         "Selecione uma categoria.",
       );
@@ -369,6 +386,22 @@ export function LancamentosPessoaisFuncionais() {
       setErro(
         "Selecione a conta.",
       );
+      return;
+    }
+
+    if (
+      tipoSelecionado === "TRANSFERENCIA" &&
+      !contaDestinoSelecionada
+    ) {
+      setErro("Selecione a conta de destino.");
+      return;
+    }
+
+    if (
+      tipoSelecionado === "TRANSFERENCIA" &&
+      contaSelecionada === contaDestinoSelecionada
+    ) {
+      setErro("As contas de origem e destino devem ser diferentes.");
       return;
     }
 
@@ -446,8 +479,15 @@ export function LancamentosPessoaisFuncionais() {
             contaId:
               contaSelecionada,
 
+            contaDestinoId:
+              tipoSelecionado === "TRANSFERENCIA"
+                ? contaDestinoSelecionada
+                : null,
+
             categoriaId:
-              categoriaSelecionada,
+              tipoSelecionado === "TRANSFERENCIA"
+                ? null
+                : categoriaSelecionada,
 
             tipo:
               tipoSelecionado,
@@ -468,7 +508,9 @@ export function LancamentosPessoaisFuncionais() {
 
       setSucesso(
         novo
-          ? "Lançamento cadastrado com sucesso."
+          ? tipoSelecionado === "TRANSFERENCIA"
+            ? "Transferência realizada com sucesso."
+            : "Lançamento cadastrado com sucesso."
           : "Alterações salvas com sucesso.",
       );
 
@@ -545,9 +587,11 @@ export function LancamentosPessoaisFuncionais() {
     formaPagamento === "CARTAO";
 
   const possuiContaAtiva = contas.some((conta) => conta.ativo);
+  const quantidadeContasAtivas = contas.filter((conta) => conta.ativo).length;
   const possuiCategoriaAtiva = categorias.some((categoria) => categoria.ativo);
-  const podeCriarLancamento = possuiContaAtiva && possuiCategoriaAtiva;
-  const lancamentosFiltrados = lancamentos.filter(l => (filtroTipo === "TODOS" || l.tipo === filtroTipo) && `${l.descricao} ${l.conta} ${l.categoria ?? ""}`.toLowerCase().includes(busca.toLowerCase()));
+  const podeCriarLancamento =
+    (possuiContaAtiva && possuiCategoriaAtiva) || quantidadeContasAtivas >= 2;
+  const lancamentosFiltrados = lancamentos.filter(l => (filtroTipo === "TODOS" || l.tipo === filtroTipo) && `${l.descricao} ${l.conta} ${l.contaDestino ?? ""} ${l.categoria ?? ""}`.toLowerCase().includes(busca.toLowerCase()));
 
   return (
     <AreaAutenticada tipo="pessoal">
@@ -556,8 +600,8 @@ export function LancamentosPessoaisFuncionais() {
           <h1>Lançamentos</h1>
 
           <p>
-            Consulte suas entradas e
-            saídas.
+            Consulte suas entradas,
+            saídas e transferências.
           </p>
         </div>
 
@@ -585,7 +629,7 @@ export function LancamentosPessoaisFuncionais() {
         </p>
       )}
 
-      {lancamentos.length > 0 && <div className="barra-filtros"><label><Search size={17}/><input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por descrição, conta ou categoria..." aria-label="Buscar lançamentos"/></label><select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value as typeof filtroTipo)} aria-label="Filtrar por tipo"><option value="TODOS">Todos os tipos</option><option value="ENTRADA">Entradas</option><option value="SAIDA">Saídas</option></select><span>{lancamentosFiltrados.length} resultado(s)</span></div>}
+      {lancamentos.length > 0 && <div className="barra-filtros"><label><Search size={17}/><input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por descrição, conta ou categoria..." aria-label="Buscar lançamentos"/></label><select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value as typeof filtroTipo)} aria-label="Filtrar por tipo"><option value="TODOS">Todos os tipos</option><option value="ENTRADA">Entradas</option><option value="SAIDA">Saídas</option><option value="TRANSFERENCIA">Transferências</option></select><span>{lancamentosFiltrados.length} resultado(s)</span></div>}
       {lancamentos.length === 0 ? (
         <div className="estado-vazio estado-vazio-onboarding">
           <p className="sobre-titulo">Primeiros passos</p>
@@ -639,9 +683,9 @@ export function LancamentosPessoaisFuncionais() {
                   </td>
 
                   <td data-label="Conta">
-                    {
-                      lancamento.conta
-                    }
+                    {lancamento.tipo === "TRANSFERENCIA"
+                      ? `${lancamento.conta} → ${lancamento.contaDestino ?? "Conta de destino"}`
+                      : lancamento.conta}
                   </td>
 
                   <td data-label="Valor">
@@ -739,6 +783,10 @@ export function LancamentosPessoaisFuncionais() {
                 <option value="SAIDA">
                   Saída
                 </option>
+
+                <option value="TRANSFERENCIA">
+                  Transferência
+                </option>
               </select>
             </label>
 
@@ -775,7 +823,9 @@ export function LancamentosPessoaisFuncionais() {
 
             {!compraNoCartao && (
               <label className="campo">
-                Conta
+                {tipoSelecionado === "TRANSFERENCIA"
+                  ? "Conta de origem"
+                  : "Conta"}
 
                 <select
                   name="contaId"
@@ -811,6 +861,33 @@ export function LancamentosPessoaisFuncionais() {
                         {
                           conta.nome
                         }
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
+
+            {tipoSelecionado === "TRANSFERENCIA" && (
+              <label className="campo">
+                Conta de destino
+
+                <select
+                  name="contaDestinoId"
+                  value={contaDestinoSelecionada}
+                  onChange={(evento) =>
+                    setContaDestinoSelecionada(evento.target.value)
+                  }
+                  required
+                >
+                  <option value="">Selecione</option>
+
+                  {contas
+                    .filter(
+                      (conta) => conta.ativo && conta.id !== contaSelecionada,
+                    )
+                    .map((conta) => (
+                      <option key={conta.id} value={conta.id}>
+                        {conta.nome}
                       </option>
                     ))}
                 </select>
@@ -893,7 +970,7 @@ export function LancamentosPessoaisFuncionais() {
               </>
             )}
 
-            <label className="campo">
+            {tipoSelecionado !== "TRANSFERENCIA" && <label className="campo">
               Categoria
 
               <select
@@ -930,7 +1007,7 @@ export function LancamentosPessoaisFuncionais() {
                   ),
                 )}
               </select>
-            </label>
+            </label>}
 
             <Campo
               label="Descrição"
@@ -988,6 +1065,13 @@ export function LancamentosPessoaisFuncionais() {
               </p>
             )}
 
+            {tipoSelecionado === "TRANSFERENCIA" && (
+              <p className="texto-apoio">
+                O valor sairá da conta de origem e entrará na conta de destino.
+                A transferência não será contabilizada como receita ou despesa.
+              </p>
+            )}
+
             <button
               className="botao"
               disabled={salvando}
@@ -996,6 +1080,10 @@ export function LancamentosPessoaisFuncionais() {
                 ? "Salvando..."
                 : compraNoCartao
                   ? "Registrar compra no cartão"
+                  : tipoSelecionado === "TRANSFERENCIA"
+                    ? novoLancamento
+                      ? "Realizar transferência"
+                      : "Salvar transferência"
                   : novoLancamento
                     ? "Salvar lançamento"
                     : "Salvar alterações"}
