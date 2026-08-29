@@ -238,6 +238,11 @@ public class FinanceiroEmpresarialService
             throw new InvalidOperationException(
                 "Conta empresarial inválida.");
 
+        await ExigirSaldoSuficienteAsync(
+            empresaId,
+            conta,
+            contaPagar.Valor);
+
         var jaPossuiLancamento =
             await _db.LancamentosEmpresariais
                 .AnyAsync(x =>
@@ -736,6 +741,19 @@ public class FinanceiroEmpresarialService
                     "Conta de destino inválida.");
         }
 
+        if (request.Tipo is TipoLancamentoEmpresarial.DESPESA or
+            TipoLancamentoEmpresarial.TRANSFERENCIA)
+        {
+            var conta = await _db.ContasEmpresariais
+                .AsNoTracking()
+                .FirstAsync(x => x.Id == request.ContaId);
+
+            await ExigirSaldoSuficienteAsync(
+                empresaId,
+                conta,
+                request.Valor);
+        }
+
         var lancamento =
             new LancamentoEmpresarial
             {
@@ -817,6 +835,36 @@ public class FinanceiroEmpresarialService
 
         return resposta ?? throw new KeyNotFoundException(
             "Lançamento não encontrado.");
+    }
+
+    private async Task ExigirSaldoSuficienteAsync(
+        Guid empresaId,
+        ContaEmpresarial conta,
+        decimal valor)
+    {
+        var movimentos = await _db.LancamentosEmpresariais
+            .Where(x =>
+                x.EmpresaId == empresaId &&
+                x.ContaId == conta.Id &&
+                !x.Cancelado)
+            .SumAsync(x => (decimal?)(
+                x.Tipo == TipoLancamentoEmpresarial.RECEITA
+                    ? x.Valor
+                    : -x.Valor)) ?? 0;
+
+        var transferenciasRecebidas = await _db.LancamentosEmpresariais
+            .Where(x =>
+                x.EmpresaId == empresaId &&
+                x.ContaDestinoId == conta.Id &&
+                x.Tipo == TipoLancamentoEmpresarial.TRANSFERENCIA &&
+                !x.Cancelado)
+            .SumAsync(x => (decimal?)x.Valor) ?? 0;
+
+        var saldo = conta.SaldoInicial + movimentos + transferenciasRecebidas;
+
+        if (saldo < valor)
+            throw new InvalidOperationException(
+                $"Saldo insuficiente na conta {conta.Nome}. Saldo disponível: R$ {saldo:N2}.");
     }
 
 

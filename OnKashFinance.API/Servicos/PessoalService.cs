@@ -344,6 +344,15 @@ public class PessoalService
             request.CategoriaId,
             request.Tipo);
 
+        if (request.Tipo is TipoLancamentoPessoal.SAIDA or
+            TipoLancamentoPessoal.TRANSFERENCIA)
+        {
+            await ExigirSaldoSuficienteAsync(
+                usuarioId,
+                conta,
+                request.Valor);
+        }
+
         var lancamento = new LancamentoPessoal
         {
             UsuarioId = usuarioId,
@@ -411,6 +420,20 @@ public class PessoalService
             request.ContaDestinoId,
             request.CategoriaId,
             request.Tipo);
+
+        if (request.Tipo is TipoLancamentoPessoal.SAIDA or
+            TipoLancamentoPessoal.TRANSFERENCIA)
+        {
+            var conta = await _db.ContasPessoais
+                .AsNoTracking()
+                .FirstAsync(x => x.Id == request.ContaId);
+
+            await ExigirSaldoSuficienteAsync(
+                usuarioId,
+                conta,
+                request.Valor,
+                lancamento.Id);
+        }
 
         lancamento.ContaId = request.ContaId;
         lancamento.ContaDestinoId = contaDestino?.Id;
@@ -489,6 +512,39 @@ public class PessoalService
             throw new InvalidOperationException("O tipo da categoria não corresponde ao lançamento.");
 
         return (conta, null, categoria);
+    }
+
+    private async Task ExigirSaldoSuficienteAsync(
+        Guid usuarioId,
+        ContaPessoal conta,
+        decimal valor,
+        Guid? lancamentoIgnoradoId = null)
+    {
+        var movimentos = await _db.LancamentosPessoais
+            .Where(x =>
+                x.UsuarioId == usuarioId &&
+                x.ContaId == conta.Id &&
+                !x.Cancelado &&
+                (!lancamentoIgnoradoId.HasValue || x.Id != lancamentoIgnoradoId.Value))
+            .SumAsync(x => (decimal?)(
+                x.Tipo == TipoLancamentoPessoal.ENTRADA
+                    ? x.Valor
+                    : -x.Valor)) ?? 0;
+
+        var transferenciasRecebidas = await _db.LancamentosPessoais
+            .Where(x =>
+                x.UsuarioId == usuarioId &&
+                x.ContaDestinoId == conta.Id &&
+                x.Tipo == TipoLancamentoPessoal.TRANSFERENCIA &&
+                !x.Cancelado &&
+                (!lancamentoIgnoradoId.HasValue || x.Id != lancamentoIgnoradoId.Value))
+            .SumAsync(x => (decimal?)x.Valor) ?? 0;
+
+        var saldo = conta.SaldoInicial + movimentos + transferenciasRecebidas;
+
+        if (saldo < valor)
+            throw new InvalidOperationException(
+                $"Saldo insuficiente na conta {conta.Nome}. Saldo disponível: R$ {saldo:N2}.");
     }
 
     public async Task CancelarLancamentoAsync(

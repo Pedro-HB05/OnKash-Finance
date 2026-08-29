@@ -403,6 +403,8 @@ public class CartaoService
                 "A fatura não possui valor para pagamento.");
         }
 
+        await ExigirSaldoSuficienteAsync(usuarioId, conta, valor);
+
         var lancamento = new LancamentoPessoal
         {
             UsuarioId = usuarioId,
@@ -423,6 +425,36 @@ public class CartaoService
         fatura.Status = StatusFatura.PAGA;
 
         await _db.SaveChangesAsync();
+    }
+
+    private async Task ExigirSaldoSuficienteAsync(
+        Guid usuarioId,
+        ContaPessoal conta,
+        decimal valor)
+    {
+        var movimentos = await _db.LancamentosPessoais
+            .Where(x =>
+                x.UsuarioId == usuarioId &&
+                x.ContaId == conta.Id &&
+                !x.Cancelado)
+            .SumAsync(x => (decimal?)(
+                x.Tipo == TipoLancamentoPessoal.ENTRADA
+                    ? x.Valor
+                    : -x.Valor)) ?? 0;
+
+        var transferenciasRecebidas = await _db.LancamentosPessoais
+            .Where(x =>
+                x.UsuarioId == usuarioId &&
+                x.ContaDestinoId == conta.Id &&
+                x.Tipo == TipoLancamentoPessoal.TRANSFERENCIA &&
+                !x.Cancelado)
+            .SumAsync(x => (decimal?)x.Valor) ?? 0;
+
+        var saldo = conta.SaldoInicial + movimentos + transferenciasRecebidas;
+
+        if (saldo < valor)
+            throw new InvalidOperationException(
+                $"Saldo insuficiente na conta {conta.Nome}. Saldo disponível: R$ {saldo:N2}.");
     }
 
     public async Task CancelarCompraAsync(
