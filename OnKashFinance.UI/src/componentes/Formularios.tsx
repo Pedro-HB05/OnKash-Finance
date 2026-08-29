@@ -214,8 +214,8 @@ export function FormularioBaixa({
         sessao.token,
       );
       concluir();
-    } catch {
-      setErro("Não foi possível concluir a operação.");
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível concluir a operação.");
     } finally {
       setSalvando(false);
     }

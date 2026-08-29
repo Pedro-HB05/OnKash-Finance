@@ -131,9 +131,11 @@ export function ContasFinanceiras({ receber }: { receber: boolean }) {
         receber ? "Recebimento registrado com sucesso." : "Pagamento registrado com sucesso.",
       );
       await carregar();
-    } catch {
+    } catch (falha) {
       setErro(
-        receber
+        falha instanceof Error
+          ? falha.message
+          : receber
           ? "Não foi possível registrar o recebimento."
           : "Não foi possível registrar o pagamento.",
       );

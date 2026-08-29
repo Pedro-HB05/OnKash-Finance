@@ -82,8 +82,8 @@ export function LancamentosEmpresariais() {
       setAbrir(false);
       setEditando(null);
       await carregar();
-    } catch {
-      setErro("Não foi possível salvar o lançamento.");
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : "Não foi possível salvar o lançamento.");
     } finally {
       setSalvando(false);
     }
