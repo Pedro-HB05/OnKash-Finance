@@ -183,10 +183,6 @@ export function DashboardFinanceiro({
             }
             aria-label="Selecionar período"
           >
-            <option value="TODO">
-              Todo o período
-            </option>
-
             <option value="MES_ATUAL">
               Este mês
             </option>
@@ -203,6 +199,10 @@ export function DashboardFinanceiro({
               Este ano
             </option>
 
+            <option value="TODO">
+              Todo o período
+            </option>
+
             <option value="PERSONALIZADO">
               Personalizado
             </option>
@@ -215,8 +215,13 @@ export function DashboardFinanceiro({
           className="filtro-periodo-personalizado"
           aria-label="Período personalizado"
         >
+          <div className="filtro-periodo-titulo">
+            <CalendarClock size={16} />
+            <span>Definir intervalo:</span>
+          </div>
+
           <label className="campo">
-            Data inicial
+            <span>Data inicial</span>
 
             <input
               type="date"
@@ -230,7 +235,7 @@ export function DashboardFinanceiro({
           </label>
 
           <label className="campo">
-            Data final
+            <span>Data final</span>
 
             <input
               type="date"

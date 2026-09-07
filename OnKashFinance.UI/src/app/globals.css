@@ -541,12 +541,95 @@ select:focus-visible {
   align-items: center;
   background: var(--superficie);
   border: 1px solid var(--borda);
-  border-radius: 10px;
-  color: var(--texto2);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #142b3f0a;
+  color: var(--texto);
+  display: inline-flex;
+  gap: 10px;
+  padding: 8px 14px;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.15s;
+}
+.periodo-visual:hover {
+  border-color: color-mix(in srgb, var(--marca) 50%, var(--borda));
+  box-shadow: 0 4px 14px #142b3f14;
+}
+.periodo-visual svg {
+  color: var(--marca);
+  flex-shrink: 0;
+}
+.periodo-visual select {
+  background: transparent;
+  border: none;
+  color: var(--texto);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+  padding: 2px 4px 2px 0;
+}
+.periodo-visual select option {
+  background: var(--superficie);
+  color: var(--texto);
+}
+.filtro-periodo-personalizado {
+  align-items: center;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
   display: flex;
-  font-weight: 750;
-  gap: 9px;
-  padding: 11px 14px;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  margin-bottom: 24px;
+  padding: 14px 20px;
+}
+.filtro-periodo-titulo {
+  align-items: center;
+  color: var(--marca);
+  display: flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.filtro-periodo-personalizado .campo {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 10px;
+  margin: 0;
+  min-width: 200px;
+}
+.filtro-periodo-personalizado .campo span {
+  color: var(--texto2);
+  white-space: nowrap;
+}
+.filtro-periodo-personalizado .campo input {
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 9px;
+  color: var(--texto);
+  flex: 1;
+  font-size: 13px;
+  min-height: 40px;
+  padding: 6px 12px;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.filtro-periodo-personalizado .campo input:focus {
+  border-color: var(--marca);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--marca) 18%, transparent);
+}
+.acoes-relatorio {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.cabecalho-relatorio {
+  flex-wrap: wrap;
 }
 .saldo-principal {
   align-items: center;

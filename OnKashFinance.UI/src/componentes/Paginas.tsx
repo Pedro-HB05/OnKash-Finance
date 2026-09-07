@@ -220,6 +220,11 @@ export function PaginaDashboard({
     ) {
       setDataInicial("");
       setDataFinal("");
+    } else if (!dataInicial || !dataFinal) {
+      const hoje = new Date();
+      const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      setDataInicial(formatarDataLocal(primeiroDia));
+      setDataFinal(formatarDataLocal(hoje));
     }
   };
 

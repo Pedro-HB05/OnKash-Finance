@@ -86,7 +86,7 @@ export function InteligenciaFinanceira({ tipo }: { tipo: "pessoal" | "empresaria
   const dadosGrafico = projecao?.pontos.map(p => ({ ...p, dataLabel: new Date(`${p.data}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) })) ?? [];
 
   return <AreaAutenticada tipo={tipo}>
-    <header className="cabecalho"><div><p className="sobre-titulo">Fase 2</p><h1>Inteligência financeira</h1><p>Concilie extratos, antecipe o caixa e transforme movimentações em decisões.</p></div><span className="selo-inteligencia"><ShieldCheck size={18}/> Dados protegidos</span></header>
+    <header className="cabecalho"><div><p className="sobre-titulo">Inteligência</p><h1>Inteligência financeira</h1><p>Concilie extratos, antecipe o caixa e transforme movimentações em decisões.</p></div><span className="selo-inteligencia"><ShieldCheck size={18}/> Dados protegidos</span></header>
     {erro && <p className="mensagem erro">{erro}</p>}
     <nav className="abas-planejamento abas-inteligencia">
       <button className={aba === "importar" ? "ativo" : ""} onClick={() => { setAba("importar"); setErro(""); }}><UploadCloud size={18}/> Importar e conciliar</button>
