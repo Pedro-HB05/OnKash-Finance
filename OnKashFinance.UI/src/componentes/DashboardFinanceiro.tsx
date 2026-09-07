@@ -6,7 +6,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CalendarClock,
-  CircleDollarSign,
+
   Landmark,
   AlertTriangle,
   FileClock,
@@ -141,12 +141,6 @@ export function DashboardFinanceiro({
   const saidas =
     valorNumerico(dados.saidas);
 
-  const resultado =
-    valorNumerico(
-      empresarial
-        ? dados.resultado
-        : dados.resultadoMes,
-    );
 
   const barras = [
     {
@@ -334,29 +328,7 @@ export function DashboardFinanceiro({
           </div>
         </article>
 
-        <article className="indicador resultado">
-          <span className="icone-indicador">
-            <CircleDollarSign size={20} />
-          </span>
 
-          <div>
-            <span>
-              Sobra do período
-            </span>
-
-            <strong>
-              {resultado > 0
-                ? "+ "
-                : ""}
-
-              {moeda(resultado)}
-            </strong>
-
-            <small>
-              {comparacao(resultado, valorNumerico(dados.resultadoAnterior))}
-            </small>
-          </div>
-        </article>
       </section>
 
       <section className="grade-analise">
