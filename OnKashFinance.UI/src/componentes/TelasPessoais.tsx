@@ -128,6 +128,9 @@ function DadosCadastro({
 
       if (tipo === "conta") {
         dados.tipo = formulario.get("tipo");
+        dados.saldoAtual = Number(
+          formulario.get("saldoAtual"),
+        );
       }
 
       if (tipo === "categoria") {
@@ -168,12 +171,23 @@ function DadosCadastro({
       />
 
       {tipo === "conta" && (
-        <Campo
-          label="Tipo da conta"
-          name="tipo"
-          defaultValue={(item as Conta).tipo}
-          required
-        />
+        <>
+          <Campo
+            label="Tipo da conta"
+            name="tipo"
+            defaultValue={(item as Conta).tipo}
+            required
+          />
+
+          <Campo
+            label="Saldo atual"
+            name="saldoAtual"
+            type="number"
+            step="0.01"
+            defaultValue={(item as Conta).saldoAtual}
+            required
+          />
+        </>
       )}
 
       {tipo === "categoria" && (
@@ -506,7 +520,12 @@ function CadastroPessoal({
   const dadosComStatus = (item: Cadastro, ativo: boolean) => {
     if (tipo === "conta") {
       const conta = item as Conta;
-      return { nome: conta.nome, tipo: conta.tipo, ativo };
+      return {
+        nome: conta.nome,
+        tipo: conta.tipo,
+        saldoAtual: conta.saldoAtual,
+        ativo,
+      };
     }
     if (tipo === "categoria") {
       const categoria = item as Categoria;

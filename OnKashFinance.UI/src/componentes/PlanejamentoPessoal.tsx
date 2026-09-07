@@ -27,17 +27,22 @@ export function PlanejamentoPessoal() {
   const [salvando, setSalvando] = useState(false);
   const [tipoRecorrencia, setTipoRecorrencia] = useState<"ENTRADA" | "SAIDA">("SAIDA");
 
-  const carregar = async () => {
+  const carregar = async (mesRef?: string) => {
     if (!sessao) return;
+    const mesBusca = mesRef ?? mes;
     try {
       setErro("");
-      const [o, r, c, cat] = await Promise.all([
-        requisicao<OrcamentoPessoal[]>(`/api/pessoal/planejamento/orcamentos?mes=${mes}-01`, {}, sessao.token),
+      const [o, r, c, cat] = await Promise.allSettled([
+        requisicao<OrcamentoPessoal[]>(`/api/pessoal/planejamento/orcamentos?mes=${mesBusca}-01`, {}, sessao.token),
         requisicao<RecorrenciaPessoal[]>("/api/pessoal/planejamento/recorrencias", {}, sessao.token),
         requisicao<Conta[]>("/api/pessoal/contas", {}, sessao.token),
         requisicao<Categoria[]>("/api/pessoal/categorias", {}, sessao.token),
       ]);
-      setOrcamentos(o); setRecorrencias(r); setContas(c); setCategorias(cat);
+      if (o.status === "fulfilled") setOrcamentos(o.value);
+      if (r.status === "fulfilled") setRecorrencias(r.value);
+      if (c.status === "fulfilled") setContas(c.value);
+      if (cat.status === "fulfilled") setCategorias(cat.value);
+
     } catch (falha) { setErro(falha instanceof Error ? falha.message : "Não foi possível carregar o planejamento."); }
   };
   useEffect(() => { void carregar(); }, [sessao, mes]);
@@ -45,8 +50,9 @@ export function PlanejamentoPessoal() {
   const salvarOrcamento = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); if (!sessao) return; const f = new FormData(e.currentTarget); setSalvando(true);
     try {
-      await requisicao("/api/pessoal/planejamento/orcamentos", { method: "POST", body: JSON.stringify({ categoriaId: f.get("categoriaId"), mes: `${f.get("mes")}-01`, limite: Number(f.get("limite")) }) }, sessao.token);
-      setModal(null); setSucesso("Orçamento salvo com sucesso."); await carregar();
+      const mesSelecionado = f.get("mes") as string;
+      await requisicao("/api/pessoal/planejamento/orcamentos", { method: "POST", body: JSON.stringify({ categoriaId: f.get("categoriaId"), mes: `${mesSelecionado}-01`, limite: Number(f.get("limite")) }) }, sessao.token);
+      setModal(null); setSucesso("Orçamento salvo com sucesso."); setMes(mesSelecionado); await carregar(mesSelecionado);
     } catch (falha) { setErro(falha instanceof Error ? falha.message : "Não foi possível salvar o orçamento."); } finally { setSalvando(false); }
   };
   const salvarRecorrencia = async (e: React.FormEvent<HTMLFormElement>) => {

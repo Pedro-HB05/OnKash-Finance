@@ -139,8 +139,27 @@ public class PessoalService
             throw new KeyNotFoundException(
                 "Conta não encontrada.");
 
+        var movimentacoes = await _db.LancamentosPessoais
+            .Where(x =>
+                x.UsuarioId == usuarioId &&
+                x.ContaId == conta.Id &&
+                !x.Cancelado)
+            .SumAsync(x =>
+                x.Tipo == TipoLancamentoPessoal.ENTRADA
+                    ? x.Valor
+                    : -x.Valor);
+
+        var transferenciasRecebidas = await _db.LancamentosPessoais
+            .Where(x =>
+                x.UsuarioId == usuarioId &&
+                x.ContaDestinoId == conta.Id &&
+                x.Tipo == TipoLancamentoPessoal.TRANSFERENCIA &&
+                !x.Cancelado)
+            .SumAsync(x => x.Valor);
+
         conta.Nome = request.Nome.Trim();
         conta.Tipo = request.Tipo.Trim();
+        conta.SaldoInicial = request.SaldoAtual - movimentacoes - transferenciasRecebidas;
         conta.Ativo = request.Ativo;
 
         await _db.SaveChangesAsync();

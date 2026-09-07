@@ -29,6 +29,7 @@ public class PlanejamentoPessoalService
         var referencia = new DateOnly((mes ?? DateOnly.FromDateTime(DateTime.Today)).Year, (mes ?? DateOnly.FromDateTime(DateTime.Today)).Month, 1);
         var fim = referencia.AddMonths(1).AddDays(-1);
         var itens = await _db.OrcamentosPessoais.AsNoTracking()
+            .Include(x => x.Categoria)
             .Where(x => x.UsuarioId == usuarioId && x.Mes == referencia)
             .OrderBy(x => x.Categoria.Nome).ToListAsync();
 
